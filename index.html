@@ -421,8 +421,9 @@ function splitCost(b){
   if(!b.totalPrice || n === 0) return null;
   const total = b.totalPrice;
   const points = Math.min(b.pointsUsed || 0, total);
+  const ROUND_UNIT = 10; // 他のメンバーの1人あたり金額は10円未満を切り捨てて、きりの良い金額にする
   if(b.members.some(m=>isSelf(m.name))){
-    const othersShare = Math.floor(total / n);
+    const othersShare = Math.floor(total / n / ROUND_UNIT) * ROUND_UNIT;
     const selfShareRaw = total - othersShare * (n - 1);
     const selfShare = Math.max(0, selfShareRaw - points);
     return { selfIncluded: true, othersShare, selfShare, points, n };

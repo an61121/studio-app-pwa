@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studio-app-v11';
+const CACHE_NAME = 'studio-app-v12';
 const ASSETS = [
   './',
   './index.html',
