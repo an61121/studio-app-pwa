@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スタジオ管理</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1C1917">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="スタジオ管理">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
+
+:root{
+  --ink: #1C1917;
+  --panel: #242019;
+  --panel-alt: #2B241C;
+  --line: #3E362B;
+  --ivory: #EDE6DB;
+  --muted: #9C8E7E;
+  --brass: #C89B3C;
+  --brass-dim: #8C6B2B;
+  --stamp: #A9382A;
+  --stamp-dim: #7A2A20;
+  --slate: #5C7A8C;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background: var(--ink);
+  color: var(--ivory);
+  font-family: 'Zen Kaku Gothic New', sans-serif;
+  min-height: 100vh;
+  padding: 32px 16px 80px;
+}
+.wrap{ max-width: 560px; margin: 0 auto; }
+
+.app-header{
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.app-title{
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: 0.06em;
+  color: var(--ivory);
+}
+.app-sub{
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  margin-top: 4px;
+}
+
+.tabs{ display:flex; gap: 4px; margin-bottom: 22px; }
+.tab-btn{
+  background: transparent; border: none; color: var(--muted);
+  font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 13.5px;
+  padding: 9px 4px; cursor: pointer; letter-spacing: 0.03em;
+  border-bottom: 2px solid transparent; margin-right: 18px;
+}
+.tab-btn.active{ color: var(--brass); border-bottom-color: var(--brass); font-weight: 700; }
+.tab-btn:hover:not(.active){ color: var(--ivory); }
+
+.cal-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 20px; }
+.cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; }
+.cal-month{ font-family: 'Shippori Mincho', serif; font-size: 18px; letter-spacing: 0.04em; }
+.cal-nav-btns{ display:flex; gap: 6px; }
+.nav-btn{
+  background: transparent; border: 1px solid var(--line); color: var(--ivory);
+  width: 30px; height: 30px; border-radius: 3px; cursor: pointer; font-size: 14px;
+  transition: border-color .15s, color .15s;
+}
+.nav-btn:hover{ border-color: var(--brass); color: var(--brass); }
+.today-btn{
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+  font-size: 11px; padding: 5px 10px; border-radius: 3px; cursor: pointer; letter-spacing: 0.05em;
+}
+.today-btn:hover{ color: var(--brass); border-color: var(--brass-dim); }
+
+.weekday-row{ display:grid; grid-template-columns: repeat(7,1fr); margin-bottom: 6px; }
+.weekday{ text-align:center; font-size: 11px; color: var(--muted); letter-spacing: 0.05em; padding-bottom: 4px; }
+.weekday.sun{ color: #A9382A; opacity: 0.75; }
+.weekday.sat{ color: var(--slate); opacity: 0.85; }
+
+.day-grid{ display:grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+.month-summary{
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line);
+  font-size: 12px; color: var(--muted);
+}
+.month-summary b{ font-family:'Shippori Mincho', serif; font-size: 17px; color: var(--brass); font-weight:700; margin-left: 6px; }
+.day-cell{
+  position: relative; aspect-ratio: 1; display:flex; align-items:center; justify-content:center;
+  font-size: 13px; color: var(--ivory); border-radius: 3px; cursor: pointer;
+  border: 1px solid transparent; transition: border-color .15s, background .15s;
+  font-variant-numeric: tabular-nums;
+}
+.day-cell.empty{ cursor: default; }
+.day-cell:not(.empty):hover{ border-color: var(--line); background: var(--panel-alt); }
+.day-cell.today{ color: var(--brass); font-weight: 700; }
+.day-cell.selected{ background: var(--brass); color: var(--ink); font-weight: 700; }
+.dot-wrap{ position:absolute; bottom: 3px; left: 50%; transform: translateX(-50%); display:flex; gap: 2px; }
+.dot{ width: 4px; height: 4px; border-radius: 50%; background: var(--brass); }
+.day-cell.selected .dot{ background: var(--ink); }
+.count-badge{ font-size: 8px; color: var(--brass); position:absolute; top:2px; right:3px; }
+.day-cell.selected .count-badge{ color: var(--ink); }
+
+.detail{ margin-top: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 22px; min-height: 120px; }
+.detail-empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 14px; padding: 20px 0; color: var(--muted); font-size: 13px; text-align:center; }
+.detail-date-label{ font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 12px; display:flex; align-items:center; justify-content:space-between; }
+.back-link{ background:none; border:none; color: var(--brass); cursor:pointer; font-size: 11.5px; letter-spacing: 0.03em; }
+
+.booking-summary{
+  display:flex; align-items:center; justify-content:space-between; padding: 13px 14px; margin-bottom: 8px;
+  background: var(--panel-alt); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; transition: border-color .15s;
+}
+.booking-summary:hover{ border-color: var(--brass-dim); }
+.booking-summary .bs-studio{ font-family:'Shippori Mincho', serif; font-size: 15.5px; }
+.booking-summary .bs-time{ font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.booking-summary .bs-progress{ font-size: 11px; color: var(--brass); white-space:nowrap; }
+.add-another-btn{
+  width:100%; background: transparent; border: 1px dashed var(--line); color: var(--muted);
+  padding: 12px; border-radius: 4px; cursor:pointer; font-size: 13px; margin-top: 4px; font-family: inherit;
+}
+.add-another-btn:hover{ border-color: var(--brass-dim); color: var(--brass); }
+
+.studio-name{ font-family: 'Shippori Mincho', serif; font-size: 22px; margin-bottom: 10px; }
+.meta-row{ display:flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-bottom: 12px; padding-bottom: 16px; border-bottom: 1px dashed var(--line); }
+.meta-row span b{ color: var(--ivory); font-weight: 500; }
+
+.price-box{ display:flex; gap: 22px; margin-bottom: 18px; padding: 14px 16px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 4px; }
+.price-item .price-label{ font-size: 10.5px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 4px; }
+.price-item .price-value{ font-family:'Shippori Mincho', serif; font-size: 18px; color: var(--brass); }
+.price-item .price-value.small{ font-size: 13px; color: var(--muted); }
+
+.member-list-title{ font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 10px; }
+.member-row{ display:flex; align-items:center; justify-content:space-between; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.member-row:last-child{ border-bottom: none; }
+.member-name{ font-size: 14.5px; display:flex; align-items:center; gap:8px; }
+.member-remove{ background:none; border:none; color: var(--muted); cursor:pointer; font-size: 12px; opacity: 0; transition: opacity .15s; }
+.member-row:hover .member-remove{ opacity: 0.6; }
+.member-remove:hover{ color: var(--stamp); opacity: 1 !important; }
+
+.stamp-btn{ background: none; border: none; cursor: pointer; width: 52px; height: 52px; display:flex; align-items:center; justify-content:center; position: relative; }
+.hanko{ width: 46px; height: 46px; border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%; display:flex; align-items:center; justify-content:center; font-family: 'Shippori Mincho', serif; font-size: 13px; transition: transform .15s; }
+.hanko.unstamped{ border: 1.5px dashed var(--line); color: var(--muted); font-size: 10px; letter-spacing: 0.02em; }
+.hanko.stamped{
+  border: 2px solid var(--stamp); box-shadow: inset 0 0 0 2px rgba(169,56,42,0.35); color: var(--stamp);
+  background: rgba(169,56,42,0.14); transform: rotate(-9deg); animation: stampDown .32s cubic-bezier(.2,1.4,.4,1); font-weight: 700;
+}
+@keyframes stampDown{
+  0%{ transform: scale(1.9) rotate(-20deg); opacity: 0; }
+  55%{ transform: scale(0.88) rotate(-6deg); opacity: 1; }
+  100%{ transform: scale(1) rotate(-9deg); opacity: 1; }
+}
+.stamp-btn:active .hanko{ transform: scale(0.92) rotate(-9deg); }
+
+.add-member-row{ display:flex; gap: 8px; margin-top: 16px; }
+.add-member-row input{ flex:1; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 9px 10px; border-radius: 3px; font-size: 13px; font-family: inherit; }
+.add-member-row input:focus{ outline:none; border-color: var(--brass-dim); }
+.add-member-row button{ background: transparent; border: 1px solid var(--brass-dim); color: var(--brass); padding: 9px 14px; border-radius: 3px; cursor: pointer; font-size: 12.5px; font-family: inherit; white-space: nowrap; }
+.add-member-row button:hover{ background: rgba(200,155,60,0.1); }
+
+.roster-select-row{ display:flex; gap: 8px; margin-top: 10px; }
+.roster-select-row select{ flex:1; min-width: 0; }
+.roster-select-row button{ background: transparent; border: 1px solid var(--brass-dim); color: var(--brass); padding: 9px 14px; border-radius: 3px; cursor: pointer; font-size: 12.5px; font-family: inherit; white-space: nowrap; }
+.roster-select-row button:hover{ background: rgba(200,155,60,0.1); }
+.roster-select-row button:disabled{ opacity:0.3; cursor:default; }
+.roster-hint{ font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+
+select{
+  background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory);
+  padding: 9px 8px; border-radius: 3px; font-family: inherit; font-size: 13px;
+}
+select:focus{ outline:none; border-color: var(--brass-dim); }
+
+.time-select-row{ display:flex; align-items:center; gap: 6px; flex-wrap: wrap; }
+.time-select-row select{ flex: 1; min-width: 64px; }
+.time-unit{ font-size: 12px; color: var(--muted); margin-right: 2px; }
+.time-sep{ color: var(--muted); padding: 0 4px; font-size: 13px; }
+
+.detail-actions{ display:flex; justify-content: space-between; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.delete-link{ background:none; border:none; color: var(--muted); font-size: 11.5px; cursor:pointer; letter-spacing: 0.03em; }
+.delete-link:hover{ color: var(--stamp); }
+.edit-link{ background:none; border:none; color: var(--muted); font-size: 11.5px; cursor:pointer; letter-spacing: 0.03em; }
+.edit-link:hover{ color: var(--brass); }
+
+.new-btn{
+  background: var(--brass); color: var(--ink); border: none; padding: 10px 20px; border-radius: 3px; cursor: pointer;
+  font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.03em;
+}
+.new-btn:hover{ background: #d8ab52; }
+
+.form-grid{ display:flex; flex-direction:column; gap: 14px; }
+.form-grid label{ font-size: 11px; color: var(--muted); letter-spacing: 0.06em; display:block; margin-bottom: 6px; }
+.form-grid input{ width:100%; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 10px 11px; border-radius: 3px; font-size: 14px; font-family: inherit; }
+.form-grid input:focus{ outline:none; border-color: var(--brass-dim); }
+.member-chip-input{ display:flex; gap: 8px; }
+.chip-list{ display:flex; flex-wrap:wrap; gap: 6px; margin-top: 8px; }
+.chip{ background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); font-size: 12.5px; padding: 5px 10px; border-radius: 20px; display:flex; align-items:center; gap: 6px; }
+.chip button{ background:none; border:none; color: var(--muted); cursor:pointer; font-size: 12px; line-height:1; }
+.chip button:hover{ color: var(--stamp); }
+.split-preview{ font-size: 12px; color: var(--muted); margin-top: 6px; }
+.split-preview b{ color: var(--brass); }
+.form-actions{ display:flex; gap: 10px; justify-content:flex-end; margin-top: 8px; }
+.btn-primary{ background: var(--brass); color: var(--ink); border:none; padding: 10px 18px; border-radius: 3px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; }
+.btn-primary:hover{ background: #d8ab52; }
+.btn-ghost{ background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 10px 18px; border-radius: 3px; cursor: pointer; font-size: 13px; font-family: inherit; }
+.btn-ghost:hover{ color: var(--ivory); border-color: var(--muted); }
+
+.status-note{ font-size: 11px; color: var(--muted); margin-top: 10px; text-align:center; }
+
+.roster-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 22px; }
+.roster-add-row{ display:flex; gap: 8px; margin-bottom: 18px; }
+.roster-add-row input{ flex:1; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 10px 11px; border-radius: 3px; font-size: 14px; font-family: inherit; }
+.roster-add-row input:focus{ outline:none; border-color: var(--brass-dim); }
+.roster-add-row button{ background: var(--brass); color: var(--ink); border:none; padding: 10px 18px; border-radius: 3px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; }
+.roster-add-row button:hover{ background: #d8ab52; }
+.roster-item{ display:flex; align-items:center; justify-content:space-between; padding: 12px 4px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+.roster-item:last-child{ border-bottom:none; }
+.roster-item button{ background:none; border:none; color: var(--muted); cursor:pointer; font-size: 12px; }
+.roster-item button:hover{ color: var(--stamp); }
+.roster-empty{ color: var(--muted); font-size: 13px; text-align:center; padding: 20px 0; }
+
+@media (max-width: 420px){
+  .app-title{ font-size: 22px; }
+  .day-cell{ font-size: 12px; }
+  .studio-name{ font-size: 19px; }
+  .price-box{ flex-direction: column; gap: 10px; }
+  .time-select-row select{ min-width: 58px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="app-header">
+    <div class="app-title">スタジオ管理</div>
+    <div class="app-sub">STUDIO & MEMBER LEDGER</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn" id="tabBookings">予約管理</button>
+    <button class="tab-btn" id="tabMembers">メンバー管理</button>
+    <button class="tab-btn" id="tabSettings">設定</button>
+  </div>
+
+  <div id="bookingsView">
+    <div class="cal-card">
+      <div class="cal-nav">
+        <div class="cal-nav-btns">
+          <button class="nav-btn" id="prevBtn">‹</button>
+          <button class="nav-btn" id="nextBtn">›</button>
+        </div>
+        <div class="cal-month" id="monthLabel"></div>
+        <button class="today-btn" id="todayBtn">今日</button>
+      </div>
+      <div class="weekday-row" id="weekdayRow"></div>
+      <div class="day-grid" id="dayGrid"></div>
+      <div class="month-summary" id="monthSummary"></div>
+    </div>
+
+    <div class="detail" id="detail"></div>
+    <div class="status-note" id="statusNote"></div>
+  </div>
+
+  <div id="membersView" style="display:none;">
+    <div class="roster-card">
+      <div class="roster-add-row">
+        <input type="text" id="rosterInput" placeholder="メンバー名を入力">
+        <button id="rosterAddBtn">登録</button>
+      </div>
+      <div id="rosterList"></div>
+    </div>
+  </div>
+
+  <div id="settingsView" style="display:none;">
+    <div class="roster-card">
+      <div class="form-grid">
+        <div>
+          <label>自分の名前</label>
+          <input type="text" id="sSelfName" placeholder="例）自分">
+          <div class="roster-hint">新しい予約を追加するとき、参加メンバーに自動で入ります。</div>
+        </div>
+        <div>
+          <label>基本の練習時間</label>
+          <select id="sDefaultDuration"></select>
+          <div class="roster-hint">開始時間を入力すると、終了時間が未選択の場合に自動で入力されます。</div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" id="sSaveBtn" type="button">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BOOKINGS_KEY = 'studio-bookings-v3';
+const ROSTER_KEY = 'registered-members';
+const SETTINGS_KEY = 'app-settings';
+const WEEKDAYS = ['日','月','火','水','木','金','土'];
+
+let today = new Date();
+let viewYear = today.getFullYear();
+let viewMonth = today.getMonth();
+let selectedDate = null;
+let selectedBookingId = null;
+let bookings = {};   // { 'YYYY-MM-DD': [ {id, studio, startH,startM,endH,endM, totalPrice, members:[{name,accepted}]} ] }
+let roster = [];
+let settings = { selfName: '自分', defaultDurationHours: 3 };
+let mode = 'list';
+let draftMembers = [];
+let currentView = 'bookings';
+
+function dstr(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function todayStr(){ return dstr(today.getFullYear(), today.getMonth(), today.getDate()); }
+function uid(){ return 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function yen(n){ return '¥' + Number(n).toLocaleString('ja-JP'); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function timeLabel(b){
+  if(b.startH && b.startM && b.endH && b.endM) return `${b.startH}:${b.startM}〜${b.endH}:${b.endM}`;
+  return '';
+}
+function hourOptions(sel){
+  let s = `<option value="">--</option>`;
+  for(let h=0; h<24; h++){ const v = String(h).padStart(2,'0'); s += `<option value="${v}" ${sel===v?'selected':''}>${v}</option>`; }
+  return s;
+}
+function minuteOptions(sel){
+  let s = `<option value="">--</option>`;
+  for(let m=0; m<60; m+=30){ const v = String(m).padStart(2,'0'); s += `<option value="${v}" ${sel===v?'selected':''}>${v}</option>`; }
+  return s;
+}
+function durationOptions(sel){
+  let s = '';
+  for(let h=1; h<=8; h+=1){
+    s += `<option value="${h}" ${Number(sel)===h?'selected':''}>${h}時間</option>`;
+  }
+  return s;
+}
+
+// localStorage-backed shim, mirroring the {key, value} shape the app already expects.
+// Swap this object out for a real backend (Firebase, a REST API, etc.) later if you need
+// data to sync across multiple devices.
+const storage = {
+  async get(key){
+    const v = localStorage.getItem(key);
+    return v === null ? null : { key, value: v };
+  },
+  async set(key, value){
+    localStorage.setItem(key, value);
+    return { key, value };
+  }
+};
+
+async function loadAll(){
+  try{ const res = await storage.get(BOOKINGS_KEY); bookings = res && res.value ? JSON.parse(res.value) : {}; }
+  catch(e){ bookings = {}; }
+  try{ const res2 = await storage.get(ROSTER_KEY); roster = res2 && res2.value ? JSON.parse(res2.value) : []; }
+  catch(e){ roster = []; }
+  try{
+    const res3 = await storage.get(SETTINGS_KEY);
+    if(res3 && res3.value){ settings = Object.assign({selfName:'自分', defaultDurationHours:3}, JSON.parse(res3.value)); }
+  }catch(e){ /* keep defaults */ }
+}
+async function saveBookings(){
+  try{ await storage.set(BOOKINGS_KEY, JSON.stringify(bookings)); }
+  catch(e){ setStatus('保存に失敗しました'); }
+}
+async function saveRoster(){
+  try{ await storage.set(ROSTER_KEY, JSON.stringify(roster)); }
+  catch(e){ setStatus('保存に失敗しました'); }
+}
+async function saveSettings(){
+  try{ await storage.set(SETTINGS_KEY, JSON.stringify(settings)); }
+  catch(e){ setStatus('保存に失敗しました'); }
+}
+function setStatus(msg){
+  const n = document.getElementById('statusNote');
+  n.textContent = msg || '';
+  if(msg) setTimeout(()=>{ n.textContent=''; }, 2000);
+}
+
+/* ---------- tabs ---------- */
+function renderTabs(){
+  document.getElementById('tabBookings').classList.toggle('active', currentView==='bookings');
+  document.getElementById('tabMembers').classList.toggle('active', currentView==='members');
+  document.getElementById('tabSettings').classList.toggle('active', currentView==='settings');
+  document.getElementById('bookingsView').style.display = currentView==='bookings' ? '' : 'none';
+  document.getElementById('membersView').style.display = currentView==='members' ? '' : 'none';
+  document.getElementById('settingsView').style.display = currentView==='settings' ? '' : 'none';
+}
+document.getElementById('tabBookings').addEventListener('click', ()=>{ currentView='bookings'; renderTabs(); });
+document.getElementById('tabMembers').addEventListener('click', ()=>{ currentView='members'; renderTabs(); renderRoster(); });
+document.getElementById('tabSettings').addEventListener('click', ()=>{ currentView='settings'; renderTabs(); renderSettings(); });
+
+/* ---------- calendar ---------- */
+function renderWeekdays(){
+  document.getElementById('weekdayRow').innerHTML = WEEKDAYS.map((w,i)=>
+    `<div class="weekday ${i===0?'sun':i===6?'sat':''}">${w}</div>`
+  ).join('');
+}
+function computeMonthlyTotal(year, month){
+  let total = 0;
+  let count = 0;
+  Object.keys(bookings).forEach(dateKey=>{
+    const [y,m] = dateKey.split('-').map(Number);
+    if(y === year && (m-1) === month){
+      (bookings[dateKey] || []).forEach(b=>{
+        if(b.totalPrice && b.members.length && b.members.some(mm => mm.name === settings.selfName)){
+          total += Math.ceil(b.totalPrice / b.members.length);
+          count++;
+        }
+      });
+    }
+  });
+  return { total, count };
+}
+function renderMonthSummary(){
+  const { total, count } = computeMonthlyTotal(viewYear, viewMonth);
+  const el = document.getElementById('monthSummary');
+  if(count === 0){
+    el.innerHTML = `<span>${viewMonth+1}月の自己負担合計</span><b>¥0</b>`;
+  } else {
+    el.innerHTML = `<span>${viewMonth+1}月の自己負担合計（${settings.selfName}・${count}件）</span><b>${yen(total)}</b>`;
+  }
+}
+function renderCalendar(){
+  document.getElementById('monthLabel').textContent = `${viewYear}年 ${viewMonth+1}月`;
+  const grid = document.getElementById('dayGrid');
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+  let html = '';
+  for(let i=0;i<firstDay;i++) html += `<div class="day-cell empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const key = dstr(viewYear, viewMonth, d);
+    const isToday = key === todayStr();
+    const isSelected = key === selectedDate;
+    const list = bookings[key] || [];
+    let dots = '';
+    if(list.length === 1) dots = `<div class="dot-wrap"><div class="dot"></div></div>`;
+    else if(list.length > 1) dots = `<div class="count-badge">${list.length}</div><div class="dot-wrap"><div class="dot"></div></div>`;
+    html += `<div class="day-cell ${isToday?'today':''} ${isSelected?'selected':''}" data-date="${key}">${d}${dots}</div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('.day-cell:not(.empty)').forEach(cell=>{
+    cell.addEventListener('click', ()=>{
+      selectedDate = cell.dataset.date;
+      const list = bookings[selectedDate] || [];
+      mode = list.length === 1 ? 'detail' : 'list';
+      selectedBookingId = list.length === 1 ? list[0].id : null;
+      renderCalendar();
+      renderDetail();
+    });
+  });
+  renderMonthSummary();
+}
+function formatDateLabel(key){
+  const [y,m,d] = key.split('-').map(Number);
+  const wd = WEEKDAYS[new Date(y,m-1,d).getDay()];
+  return `${y}年${m}月${d}日（${wd}）`;
+}
+
+/* ---------- detail / list / form router ---------- */
+function renderDetail(){
+  const el = document.getElementById('detail');
+  if(!selectedDate){
+    el.innerHTML = `<div class="detail-empty">カレンダーで日付を選んでください</div>`;
+    return;
+  }
+  if(mode === 'new' || mode === 'edit'){ renderForm(); return; }
+
+  const list = bookings[selectedDate] || [];
+
+  if(mode === 'list' || (mode==='detail' && !selectedBookingId)){
+    if(list.length === 0){
+      el.innerHTML = `
+        <div class="detail-empty">
+          <div>${formatDateLabel(selectedDate)}<br>まだ予約がありません</div>
+          <button class="new-btn" id="newBtn">＋ 予約を追加</button>
+        </div>`;
+      document.getElementById('newBtn').addEventListener('click', ()=>{ startNew(); });
+      return;
+    }
+    el.innerHTML = `
+      <div class="detail-date-label">${formatDateLabel(selectedDate)}（${list.length}件）</div>
+      ${list.map(b=>{
+        const done = b.members.filter(m=>m.accepted).length;
+        return `<div class="booking-summary" data-id="${b.id}">
+          <div>
+            <div class="bs-studio">${escapeHtml(b.studio)}</div>
+            <div class="bs-time">${timeLabel(b) || '時間未設定'}</div>
+          </div>
+          <div class="bs-progress">${done}/${b.members.length} 受理</div>
+        </div>`;
+      }).join('')}
+      <button class="add-another-btn" id="addAnotherBtn">＋ この日にもう1件追加</button>
+    `;
+    el.querySelectorAll('.booking-summary').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        selectedBookingId = row.dataset.id;
+        mode = 'detail';
+        renderDetail();
+      });
+    });
+    document.getElementById('addAnotherBtn').addEventListener('click', ()=>{ startNew(); });
+    return;
+  }
+
+  const booking = list.find(b=>b.id === selectedBookingId);
+  if(!booking){ mode='list'; renderDetail(); return; }
+
+  const perPerson = (booking.totalPrice && booking.members.length)
+    ? Math.ceil(booking.totalPrice / booking.members.length) : null;
+
+  const memberRows = booking.members.map((m, idx)=>`
+    <div class="member-row" data-idx="${idx}">
+      <div class="member-name">
+        ${escapeHtml(m.name)}
+        <button class="member-remove" data-remove="${idx}">除く</button>
+      </div>
+      <button class="stamp-btn" data-toggle="${idx}">
+        <div class="hanko ${m.accepted ? 'stamped' : 'unstamped'}">${m.accepted ? '受理' : '未受理'}</div>
+      </button>
+    </div>
+  `).join('');
+
+  const availableRoster = roster.filter(name => !booking.members.some(m=>m.name===name));
+
+  el.innerHTML = `
+    <div class="detail-date-label">
+      <span>${formatDateLabel(selectedDate)}${list.length>1 ? '（'+ (list.findIndex(b=>b.id===booking.id)+1) +'/'+list.length+'件目）' : ''}</span>
+      ${list.length>1 ? '<button class="back-link" id="backToListBtn">‹ 一覧に戻る</button>' : ''}
+    </div>
+    <div class="studio-name">${escapeHtml(booking.studio)}</div>
+    ${timeLabel(booking) ? `<div class="meta-row"><span>時間　<b>${timeLabel(booking)}</b></span></div>` : ''}
+    ${booking.totalPrice ? `
+      <div class="price-box">
+        <div class="price-item">
+          <div class="price-label">合計金額</div>
+          <div class="price-value">${yen(booking.totalPrice)}</div>
+        </div>
+        <div class="price-item">
+          <div class="price-label">1人あたり（概算・${booking.members.length}人）</div>
+          <div class="price-value ${perPerson ? '' : 'small'}">${perPerson ? yen(perPerson) : '人数未登録'}</div>
+        </div>
+      </div>
+    ` : ''}
+    <div class="member-list-title">参加メンバー（${booking.members.filter(m=>m.accepted).length}/${booking.members.length} 受理済）</div>
+    ${memberRows || '<div style="color:var(--muted); font-size:13px;">メンバーが未登録です</div>'}
+    <div class="add-member-row">
+      <input type="text" id="addMemberInput" placeholder="メンバー名を追加">
+      <button id="addMemberBtn">追加</button>
+    </div>
+    <div class="roster-select-row">
+      <select id="rosterSelectDetail" ${availableRoster.length ? '' : 'disabled'}>
+        <option value="">${availableRoster.length ? '登録メンバーから選択…' : '登録メンバーは追加済みです'}</option>
+        ${availableRoster.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}
+      </select>
+      <button id="rosterAddSelectBtn" type="button" ${availableRoster.length ? '' : 'disabled'}>選択して追加</button>
+    </div>
+    <div class="detail-actions">
+      <button class="edit-link" id="editBtn">この予約を編集</button>
+      <button class="delete-link" id="deleteBtn">この予約を削除</button>
+    </div>
+  `;
+
+  if(list.length>1){
+    document.getElementById('backToListBtn').addEventListener('click', ()=>{
+      mode='list'; selectedBookingId=null; renderDetail();
+    });
+  }
+  el.querySelectorAll('[data-toggle]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const idx = Number(btn.dataset.toggle);
+      booking.members[idx].accepted = !booking.members[idx].accepted;
+      await saveBookings();
+      renderDetail(); renderCalendar();
+    });
+  });
+  el.querySelectorAll('[data-remove]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const idx = Number(btn.dataset.remove);
+      booking.members.splice(idx,1);
+      await saveBookings();
+      renderDetail();
+    });
+  });
+  document.getElementById('addMemberBtn').addEventListener('click', addMemberToExisting);
+  document.getElementById('addMemberInput').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') addMemberToExisting();
+  });
+  document.getElementById('rosterAddSelectBtn').addEventListener('click', async ()=>{
+    const sel = document.getElementById('rosterSelectDetail');
+    const name = sel.value;
+    if(!name) return;
+    booking.members.push({name, accepted:false});
+    await saveBookings();
+    renderDetail();
+  });
+  document.getElementById('deleteBtn').addEventListener('click', async ()=>{
+    bookings[selectedDate] = list.filter(b=>b.id !== booking.id);
+    if(bookings[selectedDate].length === 0) delete bookings[selectedDate];
+    await saveBookings();
+    mode = 'list'; selectedBookingId = null;
+    renderCalendar(); renderDetail();
+  });
+  document.getElementById('editBtn').addEventListener('click', ()=>{
+    draftMembers = booking.members.map(m=>m.name);
+    mode = 'edit';
+    renderDetail();
+  });
+
+  async function addMemberToExisting(){
+    const input = document.getElementById('addMemberInput');
+    const name = input.value.trim();
+    if(!name) return;
+    booking.members.push({name, accepted:false});
+    input.value = '';
+    await saveBookings();
+    renderDetail();
+  }
+}
+
+function startNew(){
+  draftMembers = settings.selfName ? [settings.selfName] : [];
+  mode = 'new';
+  selectedBookingId = null;
+  renderDetail();
+}
+
+/* ---------- form (new / edit) ---------- */
+function renderForm(){
+  const el = document.getElementById('detail');
+  const isEdit = mode === 'edit';
+  const list = bookings[selectedDate] || [];
+  const editing = isEdit ? list.find(b=>b.id===selectedBookingId) : null;
+
+  el.innerHTML = `
+    <div class="detail-date-label">${formatDateLabel(selectedDate)} の予約を${isEdit ? '編集' : '追加'}</div>
+    <div class="form-grid">
+      <div>
+        <label>スタジオ名</label>
+        <input type="text" id="fStudio" placeholder="例）〇〇スタジオ A館" value="${editing ? escapeHtml(editing.studio) : ''}">
+      </div>
+      <div>
+        <label>時間</label>
+        <div class="time-select-row">
+          <span class="time-unit">開始</span>
+          <select id="fStartH">${hourOptions(editing ? editing.startH : '')}</select>
+          <span>:</span>
+          <select id="fStartM">${minuteOptions(editing ? editing.startM : '')}</select>
+          <span class="time-sep">〜</span>
+          <span class="time-unit">終了</span>
+          <select id="fEndH">${hourOptions(editing ? editing.endH : '')}</select>
+          <span>:</span>
+          <select id="fEndM">${minuteOptions(editing ? editing.endM : '')}</select>
+        </div>
+      </div>
+      <div>
+        <label>スタジオ合計金額（円）</label>
+        <input type="number" id="fPrice" placeholder="例）12000" min="0" value="${editing && editing.totalPrice ? editing.totalPrice : ''}">
+        <div class="split-preview" id="splitPreview"></div>
+      </div>
+      <div>
+        <label>参加メンバー</label>
+        <div class="member-chip-input">
+          <input type="text" id="fMemberInput" placeholder="名前を入力してEnter">
+          <button class="btn-ghost" id="fAddMember" type="button">追加</button>
+        </div>
+        <div class="roster-select-row">
+          <select id="fRosterSelect"></select>
+          <button id="fRosterAddBtn" type="button">選択して追加</button>
+        </div>
+        <div class="chip-list" id="chipList"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-ghost" id="fCancel" type="button">キャンセル</button>
+        <button class="btn-primary" id="fSave" type="button">保存</button>
+      </div>
+    </div>
+  `;
+  renderChips();
+  renderFormRosterSelect();
+  updateSplitPreview();
+
+  document.getElementById('fStartH').addEventListener('change', autoFillEndTime);
+  document.getElementById('fStartM').addEventListener('change', autoFillEndTime);
+  document.getElementById('fPrice').addEventListener('input', updateSplitPreview);
+  document.getElementById('fAddMember').addEventListener('click', addDraftMember);
+  document.getElementById('fMemberInput').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); addDraftMember(); }
+  });
+  document.getElementById('fRosterAddBtn').addEventListener('click', ()=>{
+    const sel = document.getElementById('fRosterSelect');
+    const name = sel.value;
+    if(!name) return;
+    draftMembers.push(name);
+    renderChips(); renderFormRosterSelect(); updateSplitPreview();
+  });
+  document.getElementById('fCancel').addEventListener('click', ()=>{
+    mode = isEdit ? 'detail' : 'list';
+    renderDetail();
+  });
+  document.getElementById('fSave').addEventListener('click', ()=> isEdit ? saveEditedBooking(editing) : saveNewBooking());
+
+  function autoFillEndTime(){
+    const startH = document.getElementById('fStartH').value;
+    const startM = document.getElementById('fStartM').value;
+    const endHSel = document.getElementById('fEndH');
+    const endMSel = document.getElementById('fEndM');
+    if(startH && startM && !endHSel.value && !endMSel.value){
+      let totalMin = parseInt(startH,10)*60 + parseInt(startM,10) + Math.round(settings.defaultDurationHours*60);
+      totalMin = ((totalMin % (24*60)) + 24*60) % (24*60);
+      const eh = Math.floor(totalMin/60);
+      const em = totalMin % 60;
+      endHSel.value = String(eh).padStart(2,'0');
+      endMSel.value = String(em).padStart(2,'0');
+    }
+  }
+  function addDraftMember(){
+    const input = document.getElementById('fMemberInput');
+    const name = input.value.trim();
+    if(!name || draftMembers.includes(name)) { input.value=''; return; }
+    draftMembers.push(name);
+    input.value = '';
+    renderChips(); renderFormRosterSelect(); updateSplitPreview();
+  }
+  function renderChips(){
+    const chipList = document.getElementById('chipList');
+    chipList.innerHTML = draftMembers.map((name, i)=>
+      `<div class="chip">${escapeHtml(name)}<button data-chip="${i}">×</button></div>`
+    ).join('');
+    chipList.querySelectorAll('[data-chip]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        draftMembers.splice(Number(b.dataset.chip), 1);
+        renderChips(); renderFormRosterSelect(); updateSplitPreview();
+      });
+    });
+  }
+  function renderFormRosterSelect(){
+    const sel = document.getElementById('fRosterSelect');
+    const btn = document.getElementById('fRosterAddBtn');
+    const available = roster.filter(n => !draftMembers.includes(n));
+    if(available.length === 0){
+      sel.innerHTML = `<option value="">登録メンバーは全員追加済みです</option>`;
+      sel.disabled = true; btn.disabled = true;
+    } else {
+      sel.innerHTML = `<option value="">登録メンバーから選択…</option>` +
+        available.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+      sel.disabled = false; btn.disabled = false;
+    }
+  }
+  function updateSplitPreview(){
+    const price = Number(document.getElementById('fPrice').value) || 0;
+    const preview = document.getElementById('splitPreview');
+    if(price > 0 && draftMembers.length > 0){
+      preview.innerHTML = `1人あたり（概算） <b>${yen(Math.ceil(price/draftMembers.length))}</b>　（${draftMembers.length}人で割った場合）`;
+    } else {
+      preview.textContent = '';
+    }
+  }
+  async function saveNewBooking(){
+    const studio = document.getElementById('fStudio').value.trim();
+    if(!studio){ setStatus('スタジオ名を入力してください'); return; }
+    const startH = document.getElementById('fStartH').value;
+    const startM = document.getElementById('fStartM').value;
+    const endH = document.getElementById('fEndH').value;
+    const endM = document.getElementById('fEndM').value;
+    const totalPrice = Number(document.getElementById('fPrice').value) || 0;
+    if(!bookings[selectedDate]) bookings[selectedDate] = [];
+    const newBooking = {
+      id: uid(), studio, startH, startM, endH, endM, totalPrice,
+      members: draftMembers.map(name=>({name, accepted:false}))
+    };
+    bookings[selectedDate].push(newBooking);
+    await saveBookings();
+    selectedBookingId = newBooking.id;
+    mode = 'detail';
+    renderCalendar(); renderDetail();
+  }
+  async function saveEditedBooking(target){
+    const studio = document.getElementById('fStudio').value.trim();
+    if(!studio){ setStatus('スタジオ名を入力してください'); return; }
+    target.studio = studio;
+    target.startH = document.getElementById('fStartH').value;
+    target.startM = document.getElementById('fStartM').value;
+    target.endH = document.getElementById('fEndH').value;
+    target.endM = document.getElementById('fEndM').value;
+    target.totalPrice = Number(document.getElementById('fPrice').value) || 0;
+    const oldAccepted = {};
+    target.members.forEach(m=>{ oldAccepted[m.name] = m.accepted; });
+    target.members = draftMembers.map(name=>({name, accepted: !!oldAccepted[name]}));
+    await saveBookings();
+    mode = 'detail';
+    renderCalendar(); renderDetail();
+  }
+}
+
+/* ---------- member management page ---------- */
+function renderRoster(){
+  const list = document.getElementById('rosterList');
+  if(roster.length === 0){
+    list.innerHTML = `<div class="roster-empty">登録されたメンバーはいません</div>`;
+    return;
+  }
+  list.innerHTML = roster.map((name, idx)=>`
+    <div class="roster-item">
+      <span>${escapeHtml(name)}</span>
+      <button data-rm="${idx}">削除</button>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-rm]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      roster.splice(Number(btn.dataset.rm), 1);
+      await saveRoster();
+      renderRoster();
+    });
+  });
+}
+document.getElementById('rosterAddBtn').addEventListener('click', addRosterMember);
+document.getElementById('rosterInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') addRosterMember();
+});
+async function addRosterMember(){
+  const input = document.getElementById('rosterInput');
+  const name = input.value.trim();
+  if(!name){ return; }
+  if(roster.includes(name)){ setStatus('すでに登録されています'); return; }
+  roster.push(name);
+  input.value = '';
+  await saveRoster();
+  renderRoster();
+}
+
+/* ---------- settings page ---------- */
+function renderSettings(){
+  document.getElementById('sSelfName').value = settings.selfName;
+  document.getElementById('sDefaultDuration').innerHTML = durationOptions(settings.defaultDurationHours);
+}
+document.getElementById('sSaveBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('sSelfName').value.trim();
+  settings.selfName = name || '自分';
+  settings.defaultDurationHours = Number(document.getElementById('sDefaultDuration').value) || 3;
+  await saveSettings();
+  renderCalendar();
+  setStatus('設定を保存しました');
+});
+
+/* ---------- nav ---------- */
+document.getElementById('prevBtn').addEventListener('click', ()=>{
+  viewMonth--; if(viewMonth < 0){ viewMonth = 11; viewYear--; }
+  renderCalendar();
+});
+document.getElementById('nextBtn').addEventListener('click', ()=>{
+  viewMonth++; if(viewMonth > 11){ viewMonth = 0; viewYear++; }
+  renderCalendar();
+});
+document.getElementById('todayBtn').addEventListener('click', ()=>{
+  viewYear = today.getFullYear(); viewMonth = today.getMonth();
+  renderCalendar();
+});
+
+(async function init(){
+  await loadAll();
+  renderTabs();
+  renderWeekdays();
+  renderCalendar();
+  renderDetail();
+})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{ /* offline caching unavailable */ });
+  });
+}
+</script>
+</body>
+</html>
