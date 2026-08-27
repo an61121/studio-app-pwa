@@ -156,6 +156,7 @@ body{
 .pending-studio{ font-family: 'Kiwi Maru', serif; font-size: 15.5px; color: var(--brass); margin: 2px 0 8px; }
 .member-row:last-child{ border-bottom: none; }
 .member-name{ font-size: 14.5px; display:flex; align-items:center; gap:8px; }
+.self-tag{ font-size: 11px; color: var(--muted); letter-spacing: 0.05em; padding: 4px 10px; border: 1px dashed var(--line); border-radius: 20px; }
 .stamp-btn{ background: none; border: none; cursor: pointer; width: 52px; height: 52px; display:flex; align-items:center; justify-content:center; position: relative; }
 .hanko{ width: 46px; height: 46px; border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%; display:flex; align-items:center; justify-content:center; font-family: 'Kiwi Maru', serif; font-size: 13px; transition: transform .15s; }
 .hanko.unstamped{ border: 1.5px dashed var(--brass-dim); color: var(--muted); font-size: 10px; letter-spacing: 0.02em; }
@@ -204,12 +205,14 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 
 .form-grid{ display:flex; flex-direction:column; gap: 14px; }
 .form-grid label{ font-size: 11px; color: var(--muted); letter-spacing: 0.06em; display:block; margin-bottom: 6px; }
-.form-grid input{ width:100%; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 10px 12px; border-radius: 12px; font-size: 14px; font-family: inherit; }
+.form-grid input{ width:100%; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 10px 12px; border-radius: 12px; font-size: 16px; font-family: inherit; }
 .form-grid input:focus{ outline:none; border-color: var(--brass-dim); }
 .chip-list{ display:flex; flex-wrap:wrap; gap: 6px; margin-top: 8px; }
 .chip{ background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); font-size: 12.5px; padding: 5px 10px; border-radius: 20px; display:flex; align-items:center; gap: 6px; }
 .chip button{ background:none; border:none; color: var(--muted); cursor:pointer; font-size: 12px; line-height:1; }
 .chip button:hover{ color: var(--stamp); }
+.studio-select-row{ margin-bottom: 8px; }
+.studio-select-row select{ width: 100%; }
 .member-add-row{ display:flex; gap: 8px; margin-top: 8px; }
 .member-add-row:first-of-type{ margin-top: 8px; }
 .member-add-row input, .member-add-row select{ flex:1; min-width: 0; }
@@ -243,7 +246,7 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 
 .roster-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: 0 6px 18px rgba(232,93,138,0.10); }
 .roster-add-row{ display:flex; gap: 8px; margin-bottom: 18px; }
-.roster-add-row input{ flex:1; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 10px 12px; border-radius: 12px; font-size: 14px; font-family: inherit; }
+.roster-add-row input{ flex:1; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 10px 12px; border-radius: 12px; font-size: 16px; font-family: inherit; }
 .roster-add-row input:focus{ outline:none; border-color: var(--brass-dim); }
 .roster-add-row button{ background: var(--brass); color: var(--ink); border:none; padding: 10px 20px; border-radius: 20px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; box-shadow: 0 4px 12px rgba(232,93,138,0.35); }
 .roster-add-row button:hover{ background: #F27CA3; }
@@ -355,6 +358,16 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
         </div>
       </div>
     </div>
+
+    <div class="roster-card" style="margin-top:20px;">
+      <div class="section-title">よく使うスタジオ</div>
+      <div class="roster-add-row">
+        <input type="text" id="studioInput" placeholder="スタジオ名を入力">
+        <button id="studioAddBtn">登録</button>
+      </div>
+      <div id="studioList"></div>
+      <div class="roster-hint">予約の追加/編集フォームで、ここに登録したスタジオから選べるようになります。</div>
+    </div>
   </div>
 </div>
 
@@ -363,6 +376,7 @@ const BOOKINGS_KEY = 'studio-bookings-v3';
 const ROSTER_KEY = 'registered-members';
 const SETTINGS_KEY = 'app-settings';
 const GROUPS_KEY = 'member-groups';
+const STUDIOS_KEY = 'saved-studios';
 const WEEKDAYS = ['日','月','火','水','木','金','土'];
 
 let today = new Date();
@@ -373,6 +387,7 @@ let selectedBookingId = null;
 let bookings = {};   // { 'YYYY-MM-DD': [ {id, studio, startH,startM,endH,endM, totalPrice, members:[{name,accepted}]} ] }
 let roster = [];
 let groups = [];     // [ {id, name, members: [name, ...]} ]
+let studios = [];    // [ name, ... ]
 let settings = { selfName: '自分', defaultDurationHours: 3 };
 let mode = 'list';
 let draftMembers = [];
@@ -385,6 +400,9 @@ function todayStr(){ return dstr(today.getFullYear(), today.getMonth(), today.ge
 function uid(){ return 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function yen(n){ return '¥' + Number(n).toLocaleString('ja-JP'); }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// 自分は前払いする前提のため、受理スタンプの対象外（常に受理済み扱い）
+function isSelf(name){ return name === settings.selfName; }
+function isAccepted(m){ return m.accepted || isSelf(m.name); }
 function timeLabel(b){
   if(b.startH && b.startM && b.endH && b.endM) return `${b.startH}:${b.startM}〜${b.endH}:${b.endM}`;
   return '';
@@ -428,6 +446,8 @@ async function loadAll(){
   catch(e){ roster = []; }
   try{ const res4 = await storage.get(GROUPS_KEY); groups = res4 && res4.value ? JSON.parse(res4.value) : []; }
   catch(e){ groups = []; }
+  try{ const res5 = await storage.get(STUDIOS_KEY); studios = res5 && res5.value ? JSON.parse(res5.value) : []; }
+  catch(e){ studios = []; }
   try{
     const res3 = await storage.get(SETTINGS_KEY);
     if(res3 && res3.value){ settings = Object.assign({selfName:'自分', defaultDurationHours:3}, JSON.parse(res3.value)); }
@@ -443,6 +463,10 @@ async function saveRoster(){
 }
 async function saveGroups(){
   try{ await storage.set(GROUPS_KEY, JSON.stringify(groups)); }
+  catch(e){ setStatus('保存に失敗しました'); }
+}
+async function saveStudios(){
+  try{ await storage.set(STUDIOS_KEY, JSON.stringify(studios)); }
   catch(e){ setStatus('保存に失敗しました'); }
 }
 async function saveSettings(){
@@ -541,7 +565,7 @@ function formatDateLabel(key){
 function pendingCount(){
   let n = 0;
   Object.values(bookings).forEach(list=>{
-    (list || []).forEach(b=>{ n += b.members.filter(m=>!m.accepted).length; });
+    (list || []).forEach(b=>{ n += b.members.filter(m=>!isAccepted(m)).length; });
   });
   return n;
 }
@@ -558,7 +582,7 @@ function renderPending(){
   Object.keys(bookings).sort().forEach(dateKey=>{
     (bookings[dateKey] || []).forEach(b=>{
       const pending = b.members
-        .map((m, idx)=>({ name: m.name, idx, accepted: m.accepted }))
+        .map((m, idx)=>({ name: m.name, idx, accepted: isAccepted(m) }))
         .filter(m=>!m.accepted);
       if(pending.length){
         items.push({ dateKey, booking: b, pending });
@@ -621,7 +645,7 @@ function renderDetail(){
     el.innerHTML = `
       <div class="detail-date-label">${formatDateLabel(selectedDate)}（${list.length}件）</div>
       ${list.map(b=>{
-        const done = b.members.filter(m=>m.accepted).length;
+        const done = b.members.filter(isAccepted).length;
         return `<div class="booking-summary" data-id="${b.id}">
           <div>
             <div class="bs-studio">${escapeHtml(b.studio)}</div>
@@ -652,9 +676,12 @@ function renderDetail(){
   const memberRows = booking.members.map((m, idx)=>`
     <div class="member-row" data-idx="${idx}">
       <div class="member-name">${escapeHtml(m.name)}</div>
-      <button class="stamp-btn" data-toggle="${idx}">
-        <div class="hanko ${m.accepted ? 'stamped' : 'unstamped'}">${m.accepted ? '受理' : '未受理'}</div>
-      </button>
+      ${isSelf(m.name)
+        ? `<span class="self-tag">本人</span>`
+        : `<button class="stamp-btn" data-toggle="${idx}">
+             <div class="hanko ${m.accepted ? 'stamped' : 'unstamped'}">${m.accepted ? '受理' : '未受理'}</div>
+           </button>`
+      }
     </div>
   `).join('');
 
@@ -677,7 +704,7 @@ function renderDetail(){
         </div>
       </div>
     ` : ''}
-    <div class="member-list-title">参加メンバー（${booking.members.filter(m=>m.accepted).length}/${booking.members.length} 受理済）</div>
+    <div class="member-list-title">参加メンバー（${booking.members.filter(isAccepted).length}/${booking.members.length} 受理済）</div>
     ${memberRows || '<div style="color:var(--muted); font-size:13px;">メンバーが未登録です</div>'}
     <div class="roster-hint">メンバーの追加・削除は「この予約を編集」から行えます。</div>
     <div class="detail-actions">
@@ -732,6 +759,14 @@ function renderForm(){
     <div class="form-grid">
       <div>
         <label>スタジオ名</label>
+        ${studios.length ? `
+        <div class="studio-select-row">
+          <select id="fStudioSelect">
+            <option value="">よく使うスタジオから選択…</option>
+            ${studios.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('')}
+          </select>
+        </div>
+        ` : ''}
         <input type="text" id="fStudio" placeholder="例）〇〇スタジオ A館" value="${editing ? escapeHtml(editing.studio) : ''}">
       </div>
       <div>
@@ -789,6 +824,13 @@ function renderForm(){
   renderFormRosterSelect();
   updateSplitPreview();
 
+  const fStudioSelect = document.getElementById('fStudioSelect');
+  if(fStudioSelect){
+    fStudioSelect.addEventListener('change', ()=>{
+      if(fStudioSelect.value) document.getElementById('fStudio').value = fStudioSelect.value;
+      fStudioSelect.value = '';
+    });
+  }
   document.getElementById('fStartH').addEventListener('change', autoFillEndTime);
   document.getElementById('fStartM').addEventListener('change', autoFillEndTime);
   document.getElementById('fPrice').addEventListener('input', updateSplitPreview);
@@ -892,7 +934,7 @@ function renderForm(){
     if(!bookings[selectedDate]) bookings[selectedDate] = [];
     const newBooking = {
       id: uid(), studio, startH, startM, endH, endM, totalPrice,
-      members: draftMembers.map(name=>({name, accepted:false}))
+      members: draftMembers.map(name=>({name, accepted: isSelf(name)}))
     };
     bookings[selectedDate].push(newBooking);
     await saveBookings();
@@ -911,7 +953,7 @@ function renderForm(){
     target.totalPrice = Number(document.getElementById('fPrice').value) || 0;
     const oldAccepted = {};
     target.members.forEach(m=>{ oldAccepted[m.name] = m.accepted; });
-    target.members = draftMembers.map(name=>({name, accepted: !!oldAccepted[name]}));
+    target.members = draftMembers.map(name=>({name, accepted: isSelf(name) || !!oldAccepted[name]}));
     await saveBookings();
     mode = 'detail';
     renderCalendar(); renderDetail();
@@ -1050,6 +1092,7 @@ document.getElementById('groupSaveBtn').addEventListener('click', async ()=>{
 function renderSettings(){
   document.getElementById('sSelfName').value = settings.selfName;
   document.getElementById('sDefaultDuration').innerHTML = durationOptions(settings.defaultDurationHours);
+  renderStudioList();
 }
 document.getElementById('sSaveBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('sSelfName').value.trim();
@@ -1059,6 +1102,42 @@ document.getElementById('sSaveBtn').addEventListener('click', async ()=>{
   renderCalendar();
   setStatus('設定を保存しました');
 });
+
+/* ---------- saved studios ---------- */
+function renderStudioList(){
+  const list = document.getElementById('studioList');
+  if(studios.length === 0){
+    list.innerHTML = `<div class="roster-empty">登録されたスタジオはありません</div>`;
+    return;
+  }
+  list.innerHTML = studios.map((name, idx)=>`
+    <div class="roster-item">
+      <span>${escapeHtml(name)}</span>
+      <button data-rm-studio="${idx}">削除</button>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-rm-studio]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      studios.splice(Number(btn.dataset.rmStudio), 1);
+      await saveStudios();
+      renderStudioList();
+    });
+  });
+}
+document.getElementById('studioAddBtn').addEventListener('click', addStudio);
+document.getElementById('studioInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') addStudio();
+});
+async function addStudio(){
+  const input = document.getElementById('studioInput');
+  const name = input.value.trim();
+  if(!name){ return; }
+  if(studios.includes(name)){ setStatus('すでに登録されています'); return; }
+  studios.push(name);
+  input.value = '';
+  await saveStudios();
+  renderStudioList();
+}
 
 /* ---------- nav ---------- */
 document.getElementById('prevBtn').addEventListener('click', ()=>{
