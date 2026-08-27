@@ -124,6 +124,16 @@ body{
 
 .detail{ margin-top: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; min-height: 120px; box-shadow: 0 6px 18px rgba(232,93,138,0.10); }
 .detail-empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 14px; padding: 20px 0; color: var(--muted); font-size: 13px; text-align:center; }
+.backup-reminder{
+  display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap: wrap;
+  background: var(--panel-alt); border: 1.5px dashed var(--brass-dim); color: var(--ivory);
+  font-size: 12.5px; padding: 12px 16px; border-radius: 16px; margin-bottom: 16px;
+}
+.backup-reminder button{
+  flex-shrink: 0; background: var(--brass); color: #fff; border:none; padding: 7px 16px;
+  border-radius: 20px; font-size: 11.5px; font-weight: 700; cursor:pointer; white-space:nowrap; font-family: inherit;
+}
+.backup-reminder button:hover{ background: #F27CA3; }
 .detail-date-label{ font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 12px; display:flex; align-items:center; justify-content:space-between; }
 .booking-nav{ display:flex; align-items:center; gap: 8px; margin-bottom: 16px; }
 .back-link{ background:none; border:none; color: var(--brass); cursor:pointer; font-size: 11.5px; letter-spacing: 0.03em; }
@@ -298,10 +308,11 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
     <button class="tab-btn" id="tabBookings">予約管理</button>
     <button class="tab-btn" id="tabPending">未受理<span class="tab-badge" id="pendingBadge"></span></button>
     <button class="tab-btn" id="tabMembers">メンバー管理</button>
-    <button class="tab-btn" id="tabSettings">設定</button>
+    <button class="tab-btn" id="tabSettings">設定<span class="tab-badge" id="backupBadge"></span></button>
   </div>
 
   <div id="bookingsView">
+    <div id="backupReminder"></div>
     <div class="cal-card">
       <div class="cal-nav">
         <div class="cal-nav-btns">
@@ -382,6 +393,17 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
       <div id="studioList"></div>
       <div class="roster-hint">予約の追加/編集フォームで、ここに登録したスタジオから選べるようになります。</div>
     </div>
+
+    <div class="roster-card" style="margin-top:20px;">
+      <div class="section-title">バックアップ</div>
+      <div class="roster-hint" style="margin-top:0; margin-bottom:14px;">予約・メンバー・グループ・設定などのデータをまとめてファイルに保存したり、そこから復元したりできます。機種変更や万が一のデータ消去に備えて、時々保存しておくのがおすすめです。</div>
+      <div id="lastBackupLabel" class="roster-hint" style="margin-top:0; margin-bottom:14px;"></div>
+      <div class="form-actions" style="justify-content:flex-start; flex-wrap:wrap;">
+        <button class="btn-primary" id="backupExportBtn" type="button">バックアップを保存</button>
+        <button class="btn-ghost" id="backupImportBtn" type="button">バックアップから復元</button>
+      </div>
+      <input type="file" id="backupFileInput" accept="application/json,.json" style="display:none;">
+    </div>
   </div>
 </div>
 
@@ -391,6 +413,8 @@ const ROSTER_KEY = 'registered-members';
 const SETTINGS_KEY = 'app-settings';
 const GROUPS_KEY = 'member-groups';
 const STUDIOS_KEY = 'saved-studios';
+const LAST_BACKUP_KEY = 'last-backup-at';
+const BACKUP_REMINDER_DAYS = 14; // これ以上バックアップの間隔が空いたらリマインドする
 const WEEKDAYS = ['日','月','火','水','木','金','土'];
 
 let today = new Date();
@@ -402,6 +426,7 @@ let bookings = {};   // { 'YYYY-MM-DD': [ {id, studio, startH,startM,endH,endM, 
 let roster = [];
 let groups = [];     // [ {id, name, members: [name, ...]} ]
 let studios = [];    // [ name, ... ]
+let lastBackupAt = null; // ISO文字列 or null（一度もバックアップしていない）
 let settings = { selfName: '自分', defaultDurationHours: 3 };
 let mode = 'list';
 let draftMembers = [];
@@ -479,6 +504,8 @@ async function loadAll(){
   catch(e){ groups = []; }
   try{ const res5 = await storage.get(STUDIOS_KEY); studios = res5 && res5.value ? JSON.parse(res5.value) : []; }
   catch(e){ studios = []; }
+  try{ const res6 = await storage.get(LAST_BACKUP_KEY); lastBackupAt = res6 && res6.value ? res6.value : null; }
+  catch(e){ lastBackupAt = null; }
   try{
     const res3 = await storage.get(SETTINGS_KEY);
     if(res3 && res3.value){ settings = Object.assign({selfName:'自分', defaultDurationHours:3}, JSON.parse(res3.value)); }
@@ -588,6 +615,8 @@ function renderCalendar(){
   });
   renderMonthSummary();
   updatePendingBadge();
+  updateBackupBadge();
+  renderBackupReminder();
 }
 function formatDateLabel(key){
   const [y,m,d] = key.split('-').map(Number);
@@ -605,6 +634,37 @@ function updatePendingBadge(){
   const badge = document.getElementById('pendingBadge');
   const n = pendingCount();
   badge.textContent = n > 0 ? String(n) : '';
+}
+
+/* ---------- backup reminder ---------- */
+function daysSinceLastBackup(){
+  if(!lastBackupAt) return Infinity;
+  return Math.floor((Date.now() - new Date(lastBackupAt).getTime()) / 86400000);
+}
+function isBackupOverdue(){
+  return daysSinceLastBackup() >= BACKUP_REMINDER_DAYS;
+}
+function updateBackupBadge(){
+  const badge = document.getElementById('backupBadge');
+  if(!badge) return;
+  badge.textContent = isBackupOverdue() ? '!' : '';
+}
+function renderBackupReminder(){
+  const el = document.getElementById('backupReminder');
+  if(!el) return;
+  if(!isBackupOverdue()){ el.innerHTML = ''; return; }
+  const msg = lastBackupAt
+    ? `最後のバックアップから${daysSinceLastBackup()}日経っています。`
+    : 'まだバックアップを取っていません。';
+  el.innerHTML = `
+    <div class="backup-reminder">
+      <span>🌙 ${msg}機種変更やデータ消去に備えて保存しておきましょう。</span>
+      <button id="backupReminderBtn" type="button">設定へ</button>
+    </div>
+  `;
+  document.getElementById('backupReminderBtn').addEventListener('click', ()=>{
+    currentView = 'settings'; renderTabs(); renderSettings();
+  });
 }
 
 /* ---------- pending (未受理) list ---------- */
@@ -1183,6 +1243,17 @@ function renderSettings(){
   document.getElementById('sSelfName').value = settings.selfName;
   document.getElementById('sDefaultDuration').innerHTML = durationOptions(settings.defaultDurationHours);
   renderStudioList();
+  renderLastBackupLabel();
+}
+function renderLastBackupLabel(){
+  const el = document.getElementById('lastBackupLabel');
+  if(!el) return;
+  if(!lastBackupAt){
+    el.textContent = 'まだバックアップを取っていません。';
+  } else {
+    const days = daysSinceLastBackup();
+    el.textContent = `最終バックアップ: ${days === 0 ? '今日' : days + '日前'}`;
+  }
 }
 document.getElementById('sSaveBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('sSelfName').value.trim();
@@ -1228,6 +1299,62 @@ async function addStudio(){
   await saveStudios();
   renderStudioList();
 }
+
+/* ---------- backup / restore ---------- */
+const BACKUP_KEYS = [BOOKINGS_KEY, ROSTER_KEY, SETTINGS_KEY, GROUPS_KEY, STUDIOS_KEY];
+function pad2(n){ return String(n).padStart(2, '0'); }
+document.getElementById('backupExportBtn').addEventListener('click', async ()=>{
+  const data = {};
+  for(const key of BACKUP_KEYS){
+    const res = await storage.get(key);
+    data[key] = res && res.value ? JSON.parse(res.value) : null;
+  }
+  const payload = { app: 'studio-app-pwa', exportedAt: new Date().toISOString(), data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `studio-backup-${now.getFullYear()}${pad2(now.getMonth()+1)}${pad2(now.getDate())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  lastBackupAt = now.toISOString();
+  await storage.set(LAST_BACKUP_KEY, lastBackupAt);
+  renderLastBackupLabel();
+  updateBackupBadge();
+  renderBackupReminder();
+  setStatus('バックアップを保存しました');
+});
+document.getElementById('backupImportBtn').addEventListener('click', ()=>{
+  document.getElementById('backupFileInput').click();
+});
+document.getElementById('backupFileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  let data;
+  try{
+    const parsed = JSON.parse(await file.text());
+    data = (parsed && typeof parsed.data === 'object' && parsed.data) ? parsed.data : parsed;
+    if(!data || typeof data !== 'object') throw new Error('invalid backup file');
+  }catch(err){
+    setStatus('復元に失敗しました（ファイルが正しくありません）');
+    return;
+  }
+  if(!confirm('現在のデータを上書きして復元します。よろしいですか？')) return;
+  for(const key of BACKUP_KEYS){
+    if(Object.prototype.hasOwnProperty.call(data, key) && data[key] !== null && data[key] !== undefined){
+      await storage.set(key, JSON.stringify(data[key]));
+    }
+  }
+  await loadAll();
+  mode = 'list'; selectedDate = null; selectedBookingId = null;
+  renderWeekdays(); renderCalendar(); renderDetail();
+  renderRoster(); renderGroups(); renderStudioList(); renderSettings();
+  setStatus('バックアップから復元しました');
+});
 
 /* ---------- nav ---------- */
 document.getElementById('prevBtn').addEventListener('click', ()=>{
