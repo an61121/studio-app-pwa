@@ -182,11 +182,11 @@ select{
 }
 select:focus{ outline:none; border-color: var(--brass-dim); }
 
-.time-select-row{ display:flex; align-items:center; gap: 10px; flex-wrap: wrap; row-gap: 10px; }
-.time-group{ display:flex; align-items:center; gap: 6px; flex: 1 1 160px; min-width: 0; }
-.time-group select{ flex: 1; min-width: 0; }
-.time-unit{ font-size: 12px; color: var(--muted); margin-right: 2px; white-space: nowrap; }
-.time-sep{ color: var(--muted); padding: 0 2px; font-size: 13px; }
+.time-select-row{ display:flex; align-items:center; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+.time-group{ display:flex; align-items:center; gap: 4px; flex: 0 0 auto; }
+.time-group select{ flex: 0 0 auto; width: 56px; min-width: 0; padding: 8px 4px; text-align:center; }
+.time-unit{ font-size: 11.5px; color: var(--muted); margin-right: 2px; white-space: nowrap; }
+.time-sep{ color: var(--muted); padding: 0 2px; font-size: 13px; white-space: nowrap; }
 
 .detail-actions{ display:flex; justify-content: space-between; margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
 .delete-link{ background:none; border:none; color: var(--muted); font-size: 11.5px; cursor:pointer; letter-spacing: 0.03em; }
@@ -205,11 +205,25 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 .form-grid label{ font-size: 11px; color: var(--muted); letter-spacing: 0.06em; display:block; margin-bottom: 6px; }
 .form-grid input{ width:100%; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 10px 12px; border-radius: 12px; font-size: 14px; font-family: inherit; }
 .form-grid input:focus{ outline:none; border-color: var(--brass-dim); }
-.member-chip-input{ display:flex; gap: 8px; }
 .chip-list{ display:flex; flex-wrap:wrap; gap: 6px; margin-top: 8px; }
 .chip{ background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); font-size: 12.5px; padding: 5px 10px; border-radius: 20px; display:flex; align-items:center; gap: 6px; }
 .chip button{ background:none; border:none; color: var(--muted); cursor:pointer; font-size: 12px; line-height:1; }
 .chip button:hover{ color: var(--stamp); }
+.member-add-row{ display:flex; gap: 8px; margin-top: 8px; }
+.member-add-row:first-of-type{ margin-top: 8px; }
+.member-add-row input, .member-add-row select{ flex:1; min-width: 0; }
+.add-btn{
+  background: var(--brass); color: #fff; border: none; padding: 9px 16px; border-radius: 12px;
+  cursor: pointer; font-size: 12.5px; font-weight: 700; font-family: inherit; white-space: nowrap;
+}
+.add-btn:hover{ background: #F27CA3; }
+.add-btn:disabled{ opacity: 0.35; cursor: default; background: var(--muted); }
+.current-members-box{ margin-top: 16px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.current-members-title{ font-size: 11px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 8px; }
+.current-members-title b{ color: var(--brass); font-size: 13px; }
+.current-members-box .chip-list{ margin-top: 0; }
+.current-members-box .chip{ background: #fff; }
+.current-members-empty{ font-size: 12.5px; color: var(--muted); padding: 2px 0; }
 .pick-chip{
   background: var(--panel-alt); border: 1px solid var(--line); color: var(--muted);
   font-size: 12.5px; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-family: inherit;
@@ -252,7 +266,6 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
   .day-cell{ font-size: 12px; }
   .studio-name{ font-size: 19px; }
   .price-box{ flex-direction: column; gap: 10px; }
-  .time-group{ flex-basis: 100%; }
 }
 </style>
 </head>
@@ -703,14 +716,12 @@ function renderForm(){
         <label>時間</label>
         <div class="time-select-row">
           <div class="time-group">
-            <span class="time-unit">開始</span>
             <select id="fStartH">${hourOptions(editing ? editing.startH : '')}</select>
             <span>:</span>
             <select id="fStartM">${minuteOptions(editing ? editing.startM : '')}</select>
           </div>
           <span class="time-sep">〜</span>
           <div class="time-group">
-            <span class="time-unit">終了</span>
             <select id="fEndH">${hourOptions(editing ? editing.endH : '')}</select>
             <span>:</span>
             <select id="fEndM">${minuteOptions(editing ? editing.endM : '')}</select>
@@ -724,23 +735,27 @@ function renderForm(){
       </div>
       <div>
         <label>参加メンバー</label>
+        <div class="member-add-row">
+          <input type="text" id="fMemberInput" placeholder="名前を入力">
+          <button class="add-btn" id="fAddMember" type="button">追加</button>
+        </div>
+        <div class="member-add-row">
+          <select id="fRosterSelect"></select>
+          <button class="add-btn" id="fRosterAddBtn" type="button">追加</button>
+        </div>
         ${groups.length ? `
-        <div class="roster-select-row" style="margin-top:0;">
+        <div class="member-add-row">
           <select id="fGroupSelect">
-            <option value="">グループから一括追加…</option>
+            <option value="">グループから選択…</option>
             ${groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}（${g.members.length}人）</option>`).join('')}
           </select>
+          <button class="add-btn" id="fGroupAddBtn" type="button">追加</button>
         </div>
         ` : ''}
-        <div class="member-chip-input">
-          <input type="text" id="fMemberInput" placeholder="名前を入力してEnter">
-          <button class="btn-ghost" id="fAddMember" type="button">追加</button>
+        <div class="current-members-box">
+          <div class="current-members-title">現在の参加メンバー（<b id="memberCountLabel">0</b>人）</div>
+          <div class="chip-list" id="chipList"></div>
         </div>
-        <div class="roster-select-row">
-          <select id="fRosterSelect"></select>
-          <button id="fRosterAddBtn" type="button">選択して追加</button>
-        </div>
-        <div class="chip-list" id="chipList"></div>
       </div>
       <div class="form-actions">
         <button class="btn-ghost" id="fCancel" type="button">キャンセル</button>
@@ -766,16 +781,17 @@ function renderForm(){
     draftMembers.push(name);
     renderChips(); renderFormRosterSelect(); updateSplitPreview();
   });
-  const fGroupSelect = document.getElementById('fGroupSelect');
-  if(fGroupSelect){
-    fGroupSelect.addEventListener('change', ()=>{
-      const g = groups.find(x=>x.id===fGroupSelect.value);
-      fGroupSelect.value = '';
+  const fGroupAddBtn = document.getElementById('fGroupAddBtn');
+  if(fGroupAddBtn){
+    fGroupAddBtn.addEventListener('click', ()=>{
+      const sel = document.getElementById('fGroupSelect');
+      const g = groups.find(x=>x.id===sel.value);
       if(!g) return;
       const added = g.members.filter(name=>!draftMembers.includes(name));
       draftMembers.push(...added);
+      sel.value = '';
       renderChips(); renderFormRosterSelect(); updateSplitPreview();
-      setStatus(`「${g.name}」のメンバーを追加しました`);
+      setStatus(added.length ? `「${g.name}」のメンバーを追加しました` : `「${g.name}」のメンバーは追加済みです`);
     });
   }
   document.getElementById('fCancel').addEventListener('click', ()=>{
@@ -808,9 +824,12 @@ function renderForm(){
   }
   function renderChips(){
     const chipList = document.getElementById('chipList');
-    chipList.innerHTML = draftMembers.map((name, i)=>
-      `<div class="chip">${escapeHtml(name)}<button data-chip="${i}">×</button></div>`
-    ).join('');
+    document.getElementById('memberCountLabel').textContent = draftMembers.length;
+    chipList.innerHTML = draftMembers.length
+      ? draftMembers.map((name, i)=>
+          `<div class="chip">${escapeHtml(name)}<button data-chip="${i}">×</button></div>`
+        ).join('')
+      : `<div class="current-members-empty">まだ誰も追加されていません</div>`;
     chipList.querySelectorAll('[data-chip]').forEach(b=>{
       b.addEventListener('click', ()=>{
         draftMembers.splice(Number(b.dataset.chip), 1);
