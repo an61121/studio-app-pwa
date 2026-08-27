@@ -59,15 +59,22 @@ body{
   margin-top: 4px;
 }
 
-.tabs{ display:flex; gap: 6px; margin-bottom: 22px; }
+.tabs{ display:flex; gap: 6px; margin-bottom: 22px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .tab-btn{
   background: transparent; border: none; color: var(--muted);
   font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 13.5px;
-  padding: 9px 14px; cursor: pointer; letter-spacing: 0.03em;
+  padding: 9px 14px; cursor: pointer; letter-spacing: 0.03em; white-space: nowrap; flex-shrink: 0;
   border-radius: 20px; margin-right: 4px; transition: background .15s, color .15s;
 }
 .tab-btn.active{ color: #fff; background: var(--brass); font-weight: 700; }
 .tab-btn:hover:not(.active){ color: var(--brass); background: var(--panel-alt); }
+.tab-badge{
+  display:inline-block; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 4px;
+  background: var(--stamp); color: #fff; font-size: 10px; font-weight: 700; line-height: 16px;
+  text-align: center; border-radius: 999px; vertical-align: 2px;
+}
+.tab-btn.active .tab-badge{ background: #fff; color: var(--brass); }
+.tab-badge:empty{ display: none; }
 
 .cal-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 20px; box-shadow: 0 6px 18px rgba(232,93,138,0.10); }
 .cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; }
@@ -143,12 +150,12 @@ body{
 
 .member-list-title{ font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 10px; }
 .member-row{ display:flex; align-items:center; justify-content:space-between; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.pending-booking{ padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px dashed var(--line); }
+.pending-booking:last-child{ border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.pending-date{ font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
+.pending-studio{ font-family: 'Kiwi Maru', serif; font-size: 15.5px; color: var(--brass); margin: 2px 0 8px; }
 .member-row:last-child{ border-bottom: none; }
 .member-name{ font-size: 14.5px; display:flex; align-items:center; gap:8px; }
-.member-remove{ background:none; border:none; color: var(--muted); cursor:pointer; font-size: 12px; opacity: 0; transition: opacity .15s; }
-.member-row:hover .member-remove{ opacity: 0.6; }
-.member-remove:hover{ color: var(--stamp); opacity: 1 !important; }
-
 .stamp-btn{ background: none; border: none; cursor: pointer; width: 52px; height: 52px; display:flex; align-items:center; justify-content:center; position: relative; }
 .hanko{ width: 46px; height: 46px; border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%; display:flex; align-items:center; justify-content:center; font-family: 'Kiwi Maru', serif; font-size: 13px; transition: transform .15s; }
 .hanko.unstamped{ border: 1.5px dashed var(--brass-dim); color: var(--muted); font-size: 10px; letter-spacing: 0.02em; }
@@ -162,12 +169,6 @@ body{
   100%{ transform: scale(1) rotate(-9deg); opacity: 1; }
 }
 .stamp-btn:active .hanko{ transform: scale(0.92) rotate(-9deg); }
-
-.add-member-row{ display:flex; gap: 8px; margin-top: 16px; }
-.add-member-row input{ flex:1; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 9px 12px; border-radius: 12px; font-size: 13px; font-family: inherit; }
-.add-member-row input:focus{ outline:none; border-color: var(--brass-dim); }
-.add-member-row button{ background: transparent; border: 1px solid var(--brass-dim); color: var(--brass); padding: 9px 14px; border-radius: 12px; cursor: pointer; font-size: 12.5px; font-family: inherit; white-space: nowrap; }
-.add-member-row button:hover{ background: rgba(232,93,138,0.1); }
 
 .roster-select-row{ display:flex; gap: 8px; margin-top: 10px; }
 .roster-select-row select{ flex:1; min-width: 0; }
@@ -278,6 +279,7 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 
   <div class="tabs">
     <button class="tab-btn" id="tabBookings">予約管理</button>
+    <button class="tab-btn" id="tabPending">未受理<span class="tab-badge" id="pendingBadge"></span></button>
     <button class="tab-btn" id="tabMembers">メンバー管理</button>
     <button class="tab-btn" id="tabSettings">設定</button>
   </div>
@@ -299,6 +301,10 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 
     <div class="detail" id="detail"></div>
     <div class="status-note" id="statusNote"></div>
+  </div>
+
+  <div id="pendingView" style="display:none;">
+    <div class="detail" id="pendingList" style="margin-top:0;"></div>
   </div>
 
   <div id="membersView" style="display:none;">
@@ -452,13 +458,16 @@ function setStatus(msg){
 /* ---------- tabs ---------- */
 function renderTabs(){
   document.getElementById('tabBookings').classList.toggle('active', currentView==='bookings');
+  document.getElementById('tabPending').classList.toggle('active', currentView==='pending');
   document.getElementById('tabMembers').classList.toggle('active', currentView==='members');
   document.getElementById('tabSettings').classList.toggle('active', currentView==='settings');
   document.getElementById('bookingsView').style.display = currentView==='bookings' ? '' : 'none';
+  document.getElementById('pendingView').style.display = currentView==='pending' ? '' : 'none';
   document.getElementById('membersView').style.display = currentView==='members' ? '' : 'none';
   document.getElementById('settingsView').style.display = currentView==='settings' ? '' : 'none';
 }
 document.getElementById('tabBookings').addEventListener('click', ()=>{ currentView='bookings'; renderTabs(); });
+document.getElementById('tabPending').addEventListener('click', ()=>{ currentView='pending'; renderTabs(); renderPending(); });
 document.getElementById('tabMembers').addEventListener('click', ()=>{ currentView='members'; renderTabs(); renderRoster(); renderGroups(); });
 document.getElementById('tabSettings').addEventListener('click', ()=>{ currentView='settings'; renderTabs(); renderSettings(); });
 
@@ -522,11 +531,70 @@ function renderCalendar(){
     });
   });
   renderMonthSummary();
+  updatePendingBadge();
 }
 function formatDateLabel(key){
   const [y,m,d] = key.split('-').map(Number);
   const wd = WEEKDAYS[new Date(y,m-1,d).getDay()];
   return `${y}年${m}月${d}日（${wd}）`;
+}
+function pendingCount(){
+  let n = 0;
+  Object.values(bookings).forEach(list=>{
+    (list || []).forEach(b=>{ n += b.members.filter(m=>!m.accepted).length; });
+  });
+  return n;
+}
+function updatePendingBadge(){
+  const badge = document.getElementById('pendingBadge');
+  const n = pendingCount();
+  badge.textContent = n > 0 ? String(n) : '';
+}
+
+/* ---------- pending (未受理) list ---------- */
+function renderPending(){
+  const el = document.getElementById('pendingList');
+  const items = [];
+  Object.keys(bookings).sort().forEach(dateKey=>{
+    (bookings[dateKey] || []).forEach(b=>{
+      const pending = b.members
+        .map((m, idx)=>({ name: m.name, idx, accepted: m.accepted }))
+        .filter(m=>!m.accepted);
+      if(pending.length){
+        items.push({ dateKey, booking: b, pending });
+      }
+    });
+  });
+  if(items.length === 0){
+    el.innerHTML = `<div class="detail-empty">未受理のメンバーはいません</div>`;
+    return;
+  }
+  el.innerHTML = items.map(({dateKey, booking, pending})=>`
+    <div class="pending-booking">
+      <div class="pending-date">${formatDateLabel(dateKey)}</div>
+      <div class="pending-studio">${escapeHtml(booking.studio)}${timeLabel(booking) ? '　' + timeLabel(booking) : ''}</div>
+      ${pending.map(m=>`
+        <div class="member-row" data-date="${dateKey}" data-booking="${booking.id}" data-idx="${m.idx}">
+          <div class="member-name">${escapeHtml(m.name)}</div>
+          <button class="stamp-btn" data-pending-toggle>
+            <div class="hanko unstamped">未受理</div>
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+  el.querySelectorAll('[data-pending-toggle]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const row = btn.closest('.member-row');
+      const list = bookings[row.dataset.date] || [];
+      const booking = list.find(b=>b.id===row.dataset.booking);
+      if(!booking) return;
+      booking.members[Number(row.dataset.idx)].accepted = true;
+      await saveBookings();
+      renderPending();
+      renderCalendar();
+    });
+  });
 }
 
 /* ---------- detail / list / form router ---------- */
@@ -583,17 +651,12 @@ function renderDetail(){
 
   const memberRows = booking.members.map((m, idx)=>`
     <div class="member-row" data-idx="${idx}">
-      <div class="member-name">
-        ${escapeHtml(m.name)}
-        <button class="member-remove" data-remove="${idx}">除く</button>
-      </div>
+      <div class="member-name">${escapeHtml(m.name)}</div>
       <button class="stamp-btn" data-toggle="${idx}">
         <div class="hanko ${m.accepted ? 'stamped' : 'unstamped'}">${m.accepted ? '受理' : '未受理'}</div>
       </button>
     </div>
   `).join('');
-
-  const availableRoster = roster.filter(name => !booking.members.some(m=>m.name===name));
 
   el.innerHTML = `
     <div class="detail-date-label">
@@ -616,17 +679,7 @@ function renderDetail(){
     ` : ''}
     <div class="member-list-title">参加メンバー（${booking.members.filter(m=>m.accepted).length}/${booking.members.length} 受理済）</div>
     ${memberRows || '<div style="color:var(--muted); font-size:13px;">メンバーが未登録です</div>'}
-    <div class="add-member-row">
-      <input type="text" id="addMemberInput" placeholder="メンバー名を追加">
-      <button id="addMemberBtn">追加</button>
-    </div>
-    <div class="roster-select-row">
-      <select id="rosterSelectDetail" ${availableRoster.length ? '' : 'disabled'}>
-        <option value="">${availableRoster.length ? '登録メンバーから選択…' : '登録メンバーは追加済みです'}</option>
-        ${availableRoster.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}
-      </select>
-      <button id="rosterAddSelectBtn" type="button" ${availableRoster.length ? '' : 'disabled'}>選択して追加</button>
-    </div>
+    <div class="roster-hint">メンバーの追加・削除は「この予約を編集」から行えます。</div>
     <div class="detail-actions">
       <button class="edit-link" id="editBtn">この予約を編集</button>
       <button class="delete-link" id="deleteBtn">この予約を削除</button>
@@ -646,27 +699,6 @@ function renderDetail(){
       renderDetail(); renderCalendar();
     });
   });
-  el.querySelectorAll('[data-remove]').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      e.stopPropagation();
-      const idx = Number(btn.dataset.remove);
-      booking.members.splice(idx,1);
-      await saveBookings();
-      renderDetail();
-    });
-  });
-  document.getElementById('addMemberBtn').addEventListener('click', addMemberToExisting);
-  document.getElementById('addMemberInput').addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter') addMemberToExisting();
-  });
-  document.getElementById('rosterAddSelectBtn').addEventListener('click', async ()=>{
-    const sel = document.getElementById('rosterSelectDetail');
-    const name = sel.value;
-    if(!name) return;
-    booking.members.push({name, accepted:false});
-    await saveBookings();
-    renderDetail();
-  });
   document.getElementById('deleteBtn').addEventListener('click', async ()=>{
     bookings[selectedDate] = list.filter(b=>b.id !== booking.id);
     if(bookings[selectedDate].length === 0) delete bookings[selectedDate];
@@ -679,16 +711,6 @@ function renderDetail(){
     mode = 'edit';
     renderDetail();
   });
-
-  async function addMemberToExisting(){
-    const input = document.getElementById('addMemberInput');
-    const name = input.value.trim();
-    if(!name) return;
-    booking.members.push({name, accepted:false});
-    input.value = '';
-    await saveBookings();
-    renderDetail();
-  }
 }
 
 function startNew(){
