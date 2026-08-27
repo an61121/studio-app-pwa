@@ -382,6 +382,16 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
       <div id="studioList"></div>
       <div class="roster-hint">予約の追加/編集フォームで、ここに登録したスタジオから選べるようになります。</div>
     </div>
+
+    <div class="roster-card" style="margin-top:20px;">
+      <div class="section-title">バックアップ</div>
+      <div class="roster-hint" style="margin-top:0; margin-bottom:14px;">予約・メンバー・グループ・設定などのデータをまとめてファイルに保存したり、そこから復元したりできます。機種変更や万が一のデータ消去に備えて、時々保存しておくのがおすすめです。</div>
+      <div class="form-actions" style="justify-content:flex-start; flex-wrap:wrap;">
+        <button class="btn-primary" id="backupExportBtn" type="button">バックアップを保存</button>
+        <button class="btn-ghost" id="backupImportBtn" type="button">バックアップから復元</button>
+      </div>
+      <input type="file" id="backupFileInput" accept="application/json,.json" style="display:none;">
+    </div>
   </div>
 </div>
 
@@ -1228,6 +1238,57 @@ async function addStudio(){
   await saveStudios();
   renderStudioList();
 }
+
+/* ---------- backup / restore ---------- */
+const BACKUP_KEYS = [BOOKINGS_KEY, ROSTER_KEY, SETTINGS_KEY, GROUPS_KEY, STUDIOS_KEY];
+function pad2(n){ return String(n).padStart(2, '0'); }
+document.getElementById('backupExportBtn').addEventListener('click', async ()=>{
+  const data = {};
+  for(const key of BACKUP_KEYS){
+    const res = await storage.get(key);
+    data[key] = res && res.value ? JSON.parse(res.value) : null;
+  }
+  const payload = { app: 'studio-app-pwa', exportedAt: new Date().toISOString(), data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `studio-backup-${now.getFullYear()}${pad2(now.getMonth()+1)}${pad2(now.getDate())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  setStatus('バックアップを保存しました');
+});
+document.getElementById('backupImportBtn').addEventListener('click', ()=>{
+  document.getElementById('backupFileInput').click();
+});
+document.getElementById('backupFileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  let data;
+  try{
+    const parsed = JSON.parse(await file.text());
+    data = (parsed && typeof parsed.data === 'object' && parsed.data) ? parsed.data : parsed;
+    if(!data || typeof data !== 'object') throw new Error('invalid backup file');
+  }catch(err){
+    setStatus('復元に失敗しました（ファイルが正しくありません）');
+    return;
+  }
+  if(!confirm('現在のデータを上書きして復元します。よろしいですか？')) return;
+  for(const key of BACKUP_KEYS){
+    if(Object.prototype.hasOwnProperty.call(data, key) && data[key] !== null && data[key] !== undefined){
+      await storage.set(key, JSON.stringify(data[key]));
+    }
+  }
+  await loadAll();
+  mode = 'list'; selectedDate = null; selectedBookingId = null;
+  renderWeekdays(); renderCalendar(); renderDetail();
+  renderRoster(); renderGroups(); renderStudioList(); renderSettings();
+  setStatus('バックアップから復元しました');
+});
 
 /* ---------- nav ---------- */
 document.getElementById('prevBtn').addEventListener('click', ()=>{
