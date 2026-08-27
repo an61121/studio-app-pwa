@@ -182,10 +182,11 @@ select{
 }
 select:focus{ outline:none; border-color: var(--brass-dim); }
 
-.time-select-row{ display:flex; align-items:center; gap: 6px; flex-wrap: wrap; }
-.time-select-row select{ flex: 1; min-width: 64px; }
-.time-unit{ font-size: 12px; color: var(--muted); margin-right: 2px; }
-.time-sep{ color: var(--muted); padding: 0 4px; font-size: 13px; }
+.time-select-row{ display:flex; align-items:center; gap: 10px; flex-wrap: wrap; row-gap: 10px; }
+.time-group{ display:flex; align-items:center; gap: 6px; flex: 1 1 160px; min-width: 0; }
+.time-group select{ flex: 1; min-width: 0; }
+.time-unit{ font-size: 12px; color: var(--muted); margin-right: 2px; white-space: nowrap; }
+.time-sep{ color: var(--muted); padding: 0 2px; font-size: 13px; }
 
 .detail-actions{ display:flex; justify-content: space-between; margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
 .delete-link{ background:none; border:none; color: var(--muted); font-size: 11.5px; cursor:pointer; letter-spacing: 0.03em; }
@@ -209,6 +210,12 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 .chip{ background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); font-size: 12.5px; padding: 5px 10px; border-radius: 20px; display:flex; align-items:center; gap: 6px; }
 .chip button{ background:none; border:none; color: var(--muted); cursor:pointer; font-size: 12px; line-height:1; }
 .chip button:hover{ color: var(--stamp); }
+.pick-chip{
+  background: var(--panel-alt); border: 1px solid var(--line); color: var(--muted);
+  font-size: 12.5px; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-family: inherit;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.pick-chip.selected{ background: var(--brass); color: #fff; border-color: var(--brass); font-weight: 700; }
 .split-preview{ font-size: 12px; color: var(--muted); margin-top: 6px; }
 .split-preview b{ color: var(--brass); }
 .form-actions{ display:flex; gap: 10px; justify-content:flex-end; margin-top: 8px; }
@@ -231,12 +238,21 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 .roster-item button:hover{ color: var(--stamp); }
 .roster-empty{ color: var(--muted); font-size: 13px; text-align:center; padding: 20px 0; }
 
+.group-item{ padding: 12px 4px; border-bottom: 1px dashed var(--line); }
+.group-item:last-child{ border-bottom: none; }
+.group-item-head{ display:flex; align-items:center; justify-content:space-between; gap: 10px; }
+.group-name{ font-family: 'Kiwi Maru', serif; font-size: 14.5px; color: var(--brass); font-weight: 700; }
+.group-item-head .edit-link, .group-item-head .delete-link{ font-size: 11.5px; }
+.group-members{ font-size: 12px; color: var(--muted); margin-top: 4px; }
+.group-empty{ color: var(--muted); font-size: 13px; text-align:center; padding: 16px 0; }
+.section-title{ font-family: 'Kiwi Maru', serif; font-size: 15px; color: var(--brass); margin-bottom: 14px; }
+
 @media (max-width: 420px){
   .app-title{ font-size: 22px; }
   .day-cell{ font-size: 12px; }
   .studio-name{ font-size: 19px; }
   .price-box{ flex-direction: column; gap: 10px; }
-  .time-select-row select{ min-width: 58px; }
+  .time-group{ flex-basis: 100%; }
 }
 </style>
 </head>
@@ -280,6 +296,26 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
       </div>
       <div id="rosterList"></div>
     </div>
+
+    <div class="roster-card" style="margin-top:20px;">
+      <div class="section-title">固定グループ</div>
+      <div id="groupList"></div>
+      <div class="form-grid" style="margin-top:18px;">
+        <div>
+          <label id="groupFormLabel">グループ名</label>
+          <input type="text" id="groupNameInput" placeholder="例）いつメン">
+        </div>
+        <div>
+          <label>メンバーを選択</label>
+          <div class="chip-list" id="groupMemberPicker"></div>
+          <div class="roster-hint" id="groupPickerHint"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-ghost" id="groupCancelBtn" type="button" style="display:none;">キャンセル</button>
+          <button class="btn-primary" id="groupSaveBtn" type="button">グループを作成</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="settingsView" style="display:none;">
@@ -307,6 +343,7 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 const BOOKINGS_KEY = 'studio-bookings-v3';
 const ROSTER_KEY = 'registered-members';
 const SETTINGS_KEY = 'app-settings';
+const GROUPS_KEY = 'member-groups';
 const WEEKDAYS = ['日','月','火','水','木','金','土'];
 
 let today = new Date();
@@ -316,9 +353,12 @@ let selectedDate = null;
 let selectedBookingId = null;
 let bookings = {};   // { 'YYYY-MM-DD': [ {id, studio, startH,startM,endH,endM, totalPrice, members:[{name,accepted}]} ] }
 let roster = [];
+let groups = [];     // [ {id, name, members: [name, ...]} ]
 let settings = { selfName: '自分', defaultDurationHours: 3 };
 let mode = 'list';
 let draftMembers = [];
+let groupDraftMembers = [];
+let editingGroupId = null;
 let currentView = 'bookings';
 
 function dstr(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
@@ -367,6 +407,8 @@ async function loadAll(){
   catch(e){ bookings = {}; }
   try{ const res2 = await storage.get(ROSTER_KEY); roster = res2 && res2.value ? JSON.parse(res2.value) : []; }
   catch(e){ roster = []; }
+  try{ const res4 = await storage.get(GROUPS_KEY); groups = res4 && res4.value ? JSON.parse(res4.value) : []; }
+  catch(e){ groups = []; }
   try{
     const res3 = await storage.get(SETTINGS_KEY);
     if(res3 && res3.value){ settings = Object.assign({selfName:'自分', defaultDurationHours:3}, JSON.parse(res3.value)); }
@@ -378,6 +420,10 @@ async function saveBookings(){
 }
 async function saveRoster(){
   try{ await storage.set(ROSTER_KEY, JSON.stringify(roster)); }
+  catch(e){ setStatus('保存に失敗しました'); }
+}
+async function saveGroups(){
+  try{ await storage.set(GROUPS_KEY, JSON.stringify(groups)); }
   catch(e){ setStatus('保存に失敗しました'); }
 }
 async function saveSettings(){
@@ -400,7 +446,7 @@ function renderTabs(){
   document.getElementById('settingsView').style.display = currentView==='settings' ? '' : 'none';
 }
 document.getElementById('tabBookings').addEventListener('click', ()=>{ currentView='bookings'; renderTabs(); });
-document.getElementById('tabMembers').addEventListener('click', ()=>{ currentView='members'; renderTabs(); renderRoster(); });
+document.getElementById('tabMembers').addEventListener('click', ()=>{ currentView='members'; renderTabs(); renderRoster(); renderGroups(); });
 document.getElementById('tabSettings').addEventListener('click', ()=>{ currentView='settings'; renderTabs(); renderSettings(); });
 
 /* ---------- calendar ---------- */
@@ -656,15 +702,19 @@ function renderForm(){
       <div>
         <label>時間</label>
         <div class="time-select-row">
-          <span class="time-unit">開始</span>
-          <select id="fStartH">${hourOptions(editing ? editing.startH : '')}</select>
-          <span>:</span>
-          <select id="fStartM">${minuteOptions(editing ? editing.startM : '')}</select>
+          <div class="time-group">
+            <span class="time-unit">開始</span>
+            <select id="fStartH">${hourOptions(editing ? editing.startH : '')}</select>
+            <span>:</span>
+            <select id="fStartM">${minuteOptions(editing ? editing.startM : '')}</select>
+          </div>
           <span class="time-sep">〜</span>
-          <span class="time-unit">終了</span>
-          <select id="fEndH">${hourOptions(editing ? editing.endH : '')}</select>
-          <span>:</span>
-          <select id="fEndM">${minuteOptions(editing ? editing.endM : '')}</select>
+          <div class="time-group">
+            <span class="time-unit">終了</span>
+            <select id="fEndH">${hourOptions(editing ? editing.endH : '')}</select>
+            <span>:</span>
+            <select id="fEndM">${minuteOptions(editing ? editing.endM : '')}</select>
+          </div>
         </div>
       </div>
       <div>
@@ -674,6 +724,14 @@ function renderForm(){
       </div>
       <div>
         <label>参加メンバー</label>
+        ${groups.length ? `
+        <div class="roster-select-row" style="margin-top:0;">
+          <select id="fGroupSelect">
+            <option value="">グループから一括追加…</option>
+            ${groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}（${g.members.length}人）</option>`).join('')}
+          </select>
+        </div>
+        ` : ''}
         <div class="member-chip-input">
           <input type="text" id="fMemberInput" placeholder="名前を入力してEnter">
           <button class="btn-ghost" id="fAddMember" type="button">追加</button>
@@ -708,6 +766,18 @@ function renderForm(){
     draftMembers.push(name);
     renderChips(); renderFormRosterSelect(); updateSplitPreview();
   });
+  const fGroupSelect = document.getElementById('fGroupSelect');
+  if(fGroupSelect){
+    fGroupSelect.addEventListener('change', ()=>{
+      const g = groups.find(x=>x.id===fGroupSelect.value);
+      fGroupSelect.value = '';
+      if(!g) return;
+      const added = g.members.filter(name=>!draftMembers.includes(name));
+      draftMembers.push(...added);
+      renderChips(); renderFormRosterSelect(); updateSplitPreview();
+      setStatus(`「${g.name}」のメンバーを追加しました`);
+    });
+  }
   document.getElementById('fCancel').addEventListener('click', ()=>{
     mode = isEdit ? 'detail' : 'list';
     renderDetail();
@@ -812,21 +882,23 @@ function renderRoster(){
   const list = document.getElementById('rosterList');
   if(roster.length === 0){
     list.innerHTML = `<div class="roster-empty">登録されたメンバーはいません</div>`;
-    return;
-  }
-  list.innerHTML = roster.map((name, idx)=>`
-    <div class="roster-item">
-      <span>${escapeHtml(name)}</span>
-      <button data-rm="${idx}">削除</button>
-    </div>
-  `).join('');
-  list.querySelectorAll('[data-rm]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      roster.splice(Number(btn.dataset.rm), 1);
-      await saveRoster();
-      renderRoster();
+  } else {
+    list.innerHTML = roster.map((name, idx)=>`
+      <div class="roster-item">
+        <span>${escapeHtml(name)}</span>
+        <button data-rm="${idx}">削除</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('[data-rm]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        roster.splice(Number(btn.dataset.rm), 1);
+        await saveRoster();
+        renderRoster();
+      });
     });
-  });
+  }
+  // roster changed: refresh the group member picker so it stays in sync
+  renderGroupPicker();
 }
 document.getElementById('rosterAddBtn').addEventListener('click', addRosterMember);
 document.getElementById('rosterInput').addEventListener('keydown', (e)=>{
@@ -842,6 +914,96 @@ async function addRosterMember(){
   await saveRoster();
   renderRoster();
 }
+
+/* ---------- fixed groups ---------- */
+function renderGroupPicker(){
+  const wrap = document.getElementById('groupMemberPicker');
+  const hint = document.getElementById('groupPickerHint');
+  if(roster.length === 0){
+    wrap.innerHTML = '';
+    hint.textContent = '先に上でメンバーを登録してください';
+    return;
+  }
+  hint.textContent = '';
+  wrap.innerHTML = roster.map(name=>{
+    const sel = groupDraftMembers.includes(name);
+    return `<button type="button" class="pick-chip ${sel ? 'selected' : ''}" data-pick="${escapeHtml(name)}">${escapeHtml(name)}</button>`;
+  }).join('');
+  wrap.querySelectorAll('[data-pick]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const name = btn.dataset.pick;
+      const i = groupDraftMembers.indexOf(name);
+      if(i === -1) groupDraftMembers.push(name); else groupDraftMembers.splice(i,1);
+      renderGroupPicker();
+    });
+  });
+}
+function renderGroups(){
+  const wrap = document.getElementById('groupList');
+  if(groups.length === 0){
+    wrap.innerHTML = `<div class="group-empty">登録されたグループはありません</div>`;
+  } else {
+    wrap.innerHTML = groups.map(g=>`
+      <div class="group-item">
+        <div class="group-item-head">
+          <span class="group-name">${escapeHtml(g.name)}</span>
+          <div style="display:flex; gap:12px;">
+            <button class="edit-link" data-edit-group="${g.id}">編集</button>
+            <button class="delete-link" data-rm-group="${g.id}">削除</button>
+          </div>
+        </div>
+        <div class="group-members">${g.members.map(escapeHtml).join('、') || 'メンバーなし'}</div>
+      </div>
+    `).join('');
+    wrap.querySelectorAll('[data-edit-group]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const g = groups.find(x=>x.id===btn.dataset.editGroup);
+        if(!g) return;
+        editingGroupId = g.id;
+        groupDraftMembers = [...g.members];
+        document.getElementById('groupNameInput').value = g.name;
+        document.getElementById('groupFormLabel').textContent = 'グループ名を編集';
+        document.getElementById('groupSaveBtn').textContent = '更新';
+        document.getElementById('groupCancelBtn').style.display = '';
+        renderGroupPicker();
+      });
+    });
+    wrap.querySelectorAll('[data-rm-group]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        groups = groups.filter(x=>x.id!==btn.dataset.rmGroup);
+        await saveGroups();
+        renderGroups();
+      });
+    });
+  }
+  renderGroupPicker();
+}
+function resetGroupForm(){
+  editingGroupId = null;
+  groupDraftMembers = [];
+  document.getElementById('groupNameInput').value = '';
+  document.getElementById('groupFormLabel').textContent = 'グループ名';
+  document.getElementById('groupSaveBtn').textContent = 'グループを作成';
+  document.getElementById('groupCancelBtn').style.display = 'none';
+  renderGroupPicker();
+}
+document.getElementById('groupCancelBtn').addEventListener('click', resetGroupForm);
+document.getElementById('groupSaveBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('groupNameInput').value.trim();
+  if(!name){ setStatus('グループ名を入力してください'); return; }
+  if(groupDraftMembers.length === 0){ setStatus('メンバーを選択してください'); return; }
+  const wasEditing = !!editingGroupId;
+  if(editingGroupId){
+    const g = groups.find(x=>x.id===editingGroupId);
+    if(g){ g.name = name; g.members = [...groupDraftMembers]; }
+  } else {
+    groups.push({ id: uid(), name, members: [...groupDraftMembers] });
+  }
+  await saveGroups();
+  resetGroupForm();
+  renderGroups();
+  setStatus(wasEditing ? 'グループを更新しました' : 'グループを作成しました');
+});
 
 /* ---------- settings page ---------- */
 function renderSettings(){
