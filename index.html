@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="theme-color" content="#F2EFFC">
+<meta name="theme-color" content="#FFF3F8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16,18 +16,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
 
 :root{
-  --bg: #F2EFFC;
+  --bg: #FFF3F8;
   --ink: #FFFFFF;
   --panel: #FFFFFF;
-  --panel-alt: #EDE9FB;
-  --line: #DAD2F5;
-  --ivory: #443C63;
-  --muted: #A79CD6;
+  --panel-alt: #FFEAF3;
+  --line: #FBD3E4;
+  --ivory: #55404F;
+  --muted: #C193B0;
   --brass: #E85D8A;
   --brass-dim: #F7B8CE;
-  --stamp: #FF6F91;
-  --stamp-dim: #FFB8C9;
-  --slate: #7CA8EA;
+  --stamp: #FF6B6B;
+  --stamp-dim: #FFB3B3;
+  --slate: #8DA9EA;
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 body{
@@ -171,8 +171,8 @@ body{
 .hanko{ width: 46px; height: 46px; border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%; display:flex; align-items:center; justify-content:center; font-family: 'Kiwi Maru', serif; font-size: 13px; transition: transform .15s; }
 .hanko.unstamped{ border: 1.5px dashed var(--brass-dim); color: var(--muted); font-size: 10px; letter-spacing: 0.02em; }
 .hanko.stamped{
-  border: 2px solid var(--stamp); box-shadow: inset 0 0 0 2px rgba(255,111,145,0.35); color: var(--stamp);
-  background: rgba(255,111,145,0.14); transform: rotate(-9deg); animation: stampDown .32s cubic-bezier(.2,1.4,.4,1); font-weight: 700;
+  border: 2px solid var(--stamp); box-shadow: inset 0 0 0 2px rgba(255,107,107,0.35); color: var(--stamp);
+  background: rgba(255,107,107,0.14); transform: rotate(-9deg); animation: stampDown .32s cubic-bezier(.2,1.4,.4,1); font-weight: 700;
 }
 @keyframes stampDown{
   0%{ transform: scale(1.9) rotate(-20deg); opacity: 0; }
