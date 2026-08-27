@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="theme-color" content="#FFF3F8">
+<meta name="theme-color" content="#F2EFFC">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16,18 +16,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
 
 :root{
-  --bg: #FFF3F8;
+  --bg: #F2EFFC;
   --ink: #FFFFFF;
   --panel: #FFFFFF;
-  --panel-alt: #FFEAF3;
-  --line: #FBD3E4;
-  --ivory: #55404F;
-  --muted: #C193B0;
-  --brass: #E85D8A;
-  --brass-dim: #F7B8CE;
-  --stamp: #FF6B6B;
-  --stamp-dim: #FFB3B3;
-  --slate: #8DA9EA;
+  --panel-alt: #EDE9FB;
+  --line: #DAD2F5;
+  --ivory: #443C63;
+  --muted: #A79CD6;
+  --brass: #7C6BDB;
+  --brass-dim: #CFC3F5;
+  --stamp: #FF6F91;
+  --stamp-dim: #FFB8C9;
+  --slate: #7CA8EA;
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 body{
@@ -51,7 +51,7 @@ body{
   letter-spacing: 0.06em;
   color: var(--brass);
 }
-.app-title::before{ content: '🌸 '; }
+.app-title::before{ content: '🌙 '; }
 .app-sub{
   font-size: 11px;
   color: var(--muted);
@@ -76,7 +76,7 @@ body{
 .tab-btn.active .tab-badge{ background: #fff; color: var(--brass); }
 .tab-badge:empty{ display: none; }
 
-.cal-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 20px; box-shadow: 0 6px 18px rgba(232,93,138,0.10); }
+.cal-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 20px; box-shadow: 0 6px 18px rgba(124,107,219,0.10); }
 .cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; }
 .cal-month{ font-family: 'Kiwi Maru', serif; font-size: 18px; letter-spacing: 0.04em; color: var(--brass); }
 .cal-nav-btns{ display:flex; gap: 6px; }
@@ -86,6 +86,8 @@ body{
   transition: border-color .15s, color .15s, background .15s;
 }
 .nav-btn:hover{ border-color: var(--brass); color: #fff; background: var(--brass); }
+.nav-btn:disabled{ opacity: 0.3; cursor: default; }
+.nav-btn:disabled:hover{ border-color: var(--line); color: var(--ivory); background: var(--panel-alt); }
 .today-btn{
   background: transparent; border: 1px solid var(--line); color: var(--muted);
   font-size: 11px; padding: 5px 12px; border-radius: 20px; cursor: pointer; letter-spacing: 0.05em;
@@ -113,16 +115,17 @@ body{
 .day-cell.empty{ cursor: default; }
 .day-cell:not(.empty):hover{ border-color: var(--brass-dim); background: var(--panel-alt); }
 .day-cell.today{ color: var(--brass); font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--brass-dim); }
-.day-cell.selected{ background: var(--brass); color: var(--ink); font-weight: 700; box-shadow: 0 3px 10px rgba(232,93,138,0.35); }
+.day-cell.selected{ background: var(--brass); color: var(--ink); font-weight: 700; box-shadow: 0 3px 10px rgba(124,107,219,0.35); }
 .dot-wrap{ position:absolute; bottom: 3px; left: 50%; transform: translateX(-50%); display:flex; gap: 2px; }
 .dot{ width: 4px; height: 4px; border-radius: 50%; background: var(--brass); }
 .day-cell.selected .dot{ background: var(--ink); }
 .count-badge{ font-size: 8px; color: var(--brass); position:absolute; top:2px; right:3px; }
 .day-cell.selected .count-badge{ color: var(--ink); }
 
-.detail{ margin-top: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; min-height: 120px; box-shadow: 0 6px 18px rgba(232,93,138,0.10); }
+.detail{ margin-top: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; min-height: 120px; box-shadow: 0 6px 18px rgba(124,107,219,0.10); }
 .detail-empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 14px; padding: 20px 0; color: var(--muted); font-size: 13px; text-align:center; }
 .detail-date-label{ font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 12px; display:flex; align-items:center; justify-content:space-between; }
+.booking-nav{ display:flex; align-items:center; gap: 8px; margin-bottom: 16px; }
 .back-link{ background:none; border:none; color: var(--brass); cursor:pointer; font-size: 11.5px; letter-spacing: 0.03em; }
 
 .booking-summary{
@@ -161,8 +164,8 @@ body{
 .hanko{ width: 46px; height: 46px; border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%; display:flex; align-items:center; justify-content:center; font-family: 'Kiwi Maru', serif; font-size: 13px; transition: transform .15s; }
 .hanko.unstamped{ border: 1.5px dashed var(--brass-dim); color: var(--muted); font-size: 10px; letter-spacing: 0.02em; }
 .hanko.stamped{
-  border: 2px solid var(--stamp); box-shadow: inset 0 0 0 2px rgba(255,107,107,0.35); color: var(--stamp);
-  background: rgba(255,107,107,0.14); transform: rotate(-9deg); animation: stampDown .32s cubic-bezier(.2,1.4,.4,1); font-weight: 700;
+  border: 2px solid var(--stamp); box-shadow: inset 0 0 0 2px rgba(255,111,145,0.35); color: var(--stamp);
+  background: rgba(255,111,145,0.14); transform: rotate(-9deg); animation: stampDown .32s cubic-bezier(.2,1.4,.4,1); font-weight: 700;
 }
 @keyframes stampDown{
   0%{ transform: scale(1.9) rotate(-20deg); opacity: 0; }
@@ -174,7 +177,7 @@ body{
 .roster-select-row{ display:flex; gap: 8px; margin-top: 10px; }
 .roster-select-row select{ flex:1; min-width: 0; }
 .roster-select-row button{ background: transparent; border: 1px solid var(--brass-dim); color: var(--brass); padding: 9px 14px; border-radius: 12px; cursor: pointer; font-size: 12.5px; font-family: inherit; white-space: nowrap; }
-.roster-select-row button:hover{ background: rgba(232,93,138,0.1); }
+.roster-select-row button:hover{ background: rgba(124,107,219,0.1); }
 .roster-select-row button:disabled{ opacity:0.3; cursor:default; }
 .roster-hint{ font-size: 11.5px; color: var(--muted); margin-top: 10px; }
 
@@ -199,9 +202,9 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 .new-btn{
   background: var(--brass); color: var(--ink); border: none; padding: 10px 22px; border-radius: 20px; cursor: pointer;
   font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.03em;
-  box-shadow: 0 4px 12px rgba(232,93,138,0.35);
+  box-shadow: 0 4px 12px rgba(124,107,219,0.35);
 }
-.new-btn:hover{ background: #F27CA3; }
+.new-btn:hover{ background: #9483EA; }
 
 .form-grid{ display:flex; flex-direction:column; gap: 14px; }
 .form-grid label{ font-size: 11px; color: var(--muted); letter-spacing: 0.06em; display:block; margin-bottom: 6px; }
@@ -220,7 +223,7 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
   background: var(--brass); color: #fff; border: none; padding: 9px 16px; border-radius: 12px;
   cursor: pointer; font-size: 12.5px; font-weight: 700; font-family: inherit; white-space: nowrap;
 }
-.add-btn:hover{ background: #F27CA3; }
+.add-btn:hover{ background: #9483EA; }
 .add-btn:disabled{ opacity: 0.35; cursor: default; background: var(--muted); }
 .current-members-box{ margin-top: 16px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
 .current-members-title{ font-size: 11px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 8px; }
@@ -237,19 +240,19 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 .split-preview{ font-size: 12px; color: var(--muted); margin-top: 6px; }
 .split-preview b{ color: var(--brass); }
 .form-actions{ display:flex; gap: 10px; justify-content:flex-end; margin-top: 8px; }
-.btn-primary{ background: var(--brass); color: var(--ink); border:none; padding: 10px 20px; border-radius: 20px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; box-shadow: 0 4px 12px rgba(232,93,138,0.35); }
-.btn-primary:hover{ background: #F27CA3; }
+.btn-primary{ background: var(--brass); color: var(--ink); border:none; padding: 10px 20px; border-radius: 20px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; box-shadow: 0 4px 12px rgba(124,107,219,0.35); }
+.btn-primary:hover{ background: #9483EA; }
 .btn-ghost{ background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 13px; font-family: inherit; }
 .btn-ghost:hover{ color: var(--ivory); border-color: var(--muted); }
 
 .status-note{ font-size: 11px; color: var(--muted); margin-top: 10px; text-align:center; }
 
-.roster-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: 0 6px 18px rgba(232,93,138,0.10); }
+.roster-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: 0 6px 18px rgba(124,107,219,0.10); }
 .roster-add-row{ display:flex; align-items:center; gap: 8px; margin-bottom: 18px; }
 .roster-add-row input{ flex:1; min-width: 0; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 10px 12px; border-radius: 12px; font-size: 16px; font-family: inherit; }
 .roster-add-row input:focus{ outline:none; border-color: var(--brass-dim); }
-.roster-add-row button{ flex-shrink: 0; white-space: nowrap; background: var(--brass); color: var(--ink); border:none; padding: 10px 20px; border-radius: 20px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; box-shadow: 0 4px 12px rgba(232,93,138,0.35); }
-.roster-add-row button:hover{ background: #F27CA3; }
+.roster-add-row button{ flex-shrink: 0; white-space: nowrap; background: var(--brass); color: var(--ink); border:none; padding: 10px 20px; border-radius: 20px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; box-shadow: 0 4px 12px rgba(124,107,219,0.35); }
+.roster-add-row button:hover{ background: #9483EA; }
 .roster-item{ display:flex; align-items:center; justify-content:space-between; padding: 12px 4px; border-bottom: 1px dashed var(--line); font-size: 14.5px; }
 .roster-item:last-child{ border-bottom:none; }
 .roster-item button{ background:none; border:none; color: var(--muted); cursor:pointer; font-size: 12px; }
@@ -685,11 +688,19 @@ function renderDetail(){
     </div>
   `).join('');
 
+  const bookingIdx = list.findIndex(b=>b.id===booking.id);
+
   el.innerHTML = `
     <div class="detail-date-label">
-      <span>${formatDateLabel(selectedDate)}${list.length>1 ? '（'+ (list.findIndex(b=>b.id===booking.id)+1) +'/'+list.length+'件目）' : ''}</span>
-      ${list.length>1 ? '<button class="back-link" id="backToListBtn">‹ 一覧に戻る</button>' : ''}
+      <span>${formatDateLabel(selectedDate)}${list.length>1 ? '（'+ (bookingIdx+1) +'/'+list.length+'件目）' : ''}</span>
     </div>
+    ${list.length>1 ? `
+    <div class="booking-nav">
+      <button class="nav-btn" id="prevBookingBtn" ${bookingIdx===0 ? 'disabled' : ''}>‹</button>
+      <button class="nav-btn" id="nextBookingBtn" ${bookingIdx===list.length-1 ? 'disabled' : ''}>›</button>
+      <button class="back-link" id="backToListBtn" style="margin-left:auto;">一覧を見る</button>
+    </div>
+    ` : ''}
     <div class="studio-name">${escapeHtml(booking.studio)}</div>
     ${timeLabel(booking) ? `<div class="meta-row"><span>時間　<b>${timeLabel(booking)}</b></span></div>` : ''}
     ${booking.totalPrice ? `
@@ -706,8 +717,7 @@ function renderDetail(){
     ` : ''}
     <div class="member-list-title">参加メンバー（${booking.members.filter(isAccepted).length}/${booking.members.length} 受理済）</div>
     ${memberRows || '<div style="color:var(--muted); font-size:13px;">メンバーが未登録です</div>'}
-    <div class="roster-hint">メンバーの追加・削除は「この予約を編集」から行えます。</div>
-    <button class="add-another-btn" id="addAnotherFromDetailBtn" style="margin-top:14px;">＋ この日にもう1件追加</button>
+    <button class="add-another-btn" id="addAnotherFromDetailBtn" style="margin-top:16px;">＋ この日にもう1件追加</button>
     <div class="detail-actions">
       <button class="edit-link" id="editBtn">この予約を編集</button>
       <button class="delete-link" id="deleteBtn">この予約を削除</button>
@@ -718,6 +728,14 @@ function renderDetail(){
     document.getElementById('backToListBtn').addEventListener('click', ()=>{
       mode='list'; selectedBookingId=null; renderDetail();
     });
+    const prevBtn = document.getElementById('prevBookingBtn');
+    const nextBtn = document.getElementById('nextBookingBtn');
+    if(bookingIdx>0){
+      prevBtn.addEventListener('click', ()=>{ selectedBookingId = list[bookingIdx-1].id; renderDetail(); });
+    }
+    if(bookingIdx<list.length-1){
+      nextBtn.addEventListener('click', ()=>{ selectedBookingId = list[bookingIdx+1].id; renderDetail(); });
+    }
   }
   document.getElementById('addAnotherFromDetailBtn').addEventListener('click', ()=>{ startNew(); });
   el.querySelectorAll('[data-toggle]').forEach(btn=>{
@@ -729,6 +747,7 @@ function renderDetail(){
     });
   });
   document.getElementById('deleteBtn').addEventListener('click', async ()=>{
+    if(!confirm(`「${booking.studio}」の予約を削除しますか？この操作は取り消せません。`)) return;
     bookings[selectedDate] = list.filter(b=>b.id !== booking.id);
     if(bookings[selectedDate].length === 0) delete bookings[selectedDate];
     await saveBookings();
