@@ -149,7 +149,7 @@ body{
 .meta-row{ display:flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-bottom: 12px; padding-bottom: 16px; border-bottom: 1px dashed var(--line); }
 .meta-row span b{ color: var(--ivory); font-weight: 500; }
 
-.price-box{ display:flex; gap: 22px; margin-bottom: 18px; padding: 14px 16px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 16px; }
+.price-box{ display:flex; flex-wrap: wrap; gap: 14px 22px; margin-bottom: 18px; padding: 14px 16px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 16px; }
 .price-item .price-label{ font-size: 10.5px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 4px; }
 .price-item .price-value{ font-family:'Kiwi Maru', serif; font-size: 18px; color: var(--brass); }
 .price-item .price-value.small{ font-size: 13px; color: var(--muted); }
@@ -414,6 +414,21 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<
 function isSelf(name){ return name === settings.selfName; }
 function isAccepted(m){ return m.accepted || isSelf(m.name); }
 function isBookingComplete(b){ return b.members.length > 0 && b.members.every(isAccepted); }
+// 割り勘: 他のメンバーは1円未満を切り捨て、割り切れない端数（＋ポイント利用分）は自分が負担する。
+// 自分がメンバーに含まれていない予約は、従来通り人数で均等割り（概算・切り上げ）にする。
+function splitCost(b){
+  const n = b.members.length;
+  if(!b.totalPrice || n === 0) return null;
+  const total = b.totalPrice;
+  const points = Math.min(b.pointsUsed || 0, total);
+  if(b.members.some(m=>isSelf(m.name))){
+    const othersShare = Math.floor(total / n);
+    const selfShareRaw = total - othersShare * (n - 1);
+    const selfShare = Math.max(0, selfShareRaw - points);
+    return { selfIncluded: true, othersShare, selfShare, points, n };
+  }
+  return { selfIncluded: false, per: Math.ceil(total / n), points, n };
+}
 function timeLabel(b){
   if(b.startH && b.startM && b.endH && b.endM) return `${b.startH}:${b.startM}〜${b.endH}:${b.endM}`;
   return '';
@@ -501,7 +516,7 @@ function renderTabs(){
   document.getElementById('membersView').style.display = currentView==='members' ? '' : 'none';
   document.getElementById('settingsView').style.display = currentView==='settings' ? '' : 'none';
 }
-document.getElementById('tabBookings').addEventListener('click', ()=>{ currentView='bookings'; renderTabs(); });
+document.getElementById('tabBookings').addEventListener('click', ()=>{ currentView='bookings'; renderTabs(); renderCalendar(); renderDetail(); });
 document.getElementById('tabPending').addEventListener('click', ()=>{ currentView='pending'; renderTabs(); renderPending(); });
 document.getElementById('tabMembers').addEventListener('click', ()=>{ currentView='members'; renderTabs(); renderRoster(); renderGroups(); });
 document.getElementById('tabSettings').addEventListener('click', ()=>{ currentView='settings'; renderTabs(); renderSettings(); });
@@ -519,8 +534,9 @@ function computeMonthlyTotal(year, month){
     const [y,m] = dateKey.split('-').map(Number);
     if(y === year && (m-1) === month){
       (bookings[dateKey] || []).forEach(b=>{
-        if(b.totalPrice && b.members.length && b.members.some(mm => mm.name === settings.selfName)){
-          total += Math.ceil(b.totalPrice / b.members.length);
+        const split = splitCost(b);
+        if(split && split.selfIncluded){
+          total += split.selfShare;
           count++;
         }
       });
@@ -682,8 +698,42 @@ function renderDetail(){
   const booking = list.find(b=>b.id === selectedBookingId);
   if(!booking){ mode='list'; renderDetail(); return; }
 
-  const perPerson = (booking.totalPrice && booking.members.length)
-    ? Math.ceil(booking.totalPrice / booking.members.length) : null;
+  const split = splitCost(booking);
+  const priceBoxHtml = split ? (split.selfIncluded ? `
+      <div class="price-box">
+        <div class="price-item">
+          <div class="price-label">合計金額</div>
+          <div class="price-value">${yen(booking.totalPrice)}</div>
+        </div>
+        <div class="price-item">
+          <div class="price-label">自分の負担${split.points ? '（端数・ポイント差引後）' : '（端数分含む）'}</div>
+          <div class="price-value">${yen(split.selfShare)}</div>
+        </div>
+        ${split.n > 1 ? `
+        <div class="price-item">
+          <div class="price-label">他${split.n - 1}人（1人あたり）</div>
+          <div class="price-value small">${yen(split.othersShare)}</div>
+        </div>
+        ` : ''}
+        ${split.points ? `
+        <div class="price-item">
+          <div class="price-label">ポイント利用</div>
+          <div class="price-value small">-${yen(split.points)}</div>
+        </div>
+        ` : ''}
+      </div>
+    ` : `
+      <div class="price-box">
+        <div class="price-item">
+          <div class="price-label">合計金額</div>
+          <div class="price-value">${yen(booking.totalPrice)}</div>
+        </div>
+        <div class="price-item">
+          <div class="price-label">1人あたり（概算・${split.n}人）</div>
+          <div class="price-value">${yen(split.per)}</div>
+        </div>
+      </div>
+    `) : '';
 
   const memberRows = booking.members.map((m, idx)=>`
     <div class="member-row" data-idx="${idx}">
@@ -712,18 +762,7 @@ function renderDetail(){
     ` : ''}
     <div class="studio-name">${escapeHtml(booking.studio)}</div>
     ${timeLabel(booking) ? `<div class="meta-row"><span>時間　<b>${timeLabel(booking)}</b></span></div>` : ''}
-    ${booking.totalPrice ? `
-      <div class="price-box">
-        <div class="price-item">
-          <div class="price-label">合計金額</div>
-          <div class="price-value">${yen(booking.totalPrice)}</div>
-        </div>
-        <div class="price-item">
-          <div class="price-label">1人あたり（概算・${booking.members.length}人）</div>
-          <div class="price-value ${perPerson ? '' : 'small'}">${perPerson ? yen(perPerson) : '人数未登録'}</div>
-        </div>
-      </div>
-    ` : ''}
+    ${priceBoxHtml}
     ${isBookingComplete(booking) ? `<div class="complete-banner">🎉 全員受理済みです</div>` : ''}
     <div class="member-list-title">参加メンバー（${booking.members.filter(isAccepted).length}/${booking.members.length} 受理済）</div>
     ${memberRows || '<div style="color:var(--muted); font-size:13px;">メンバーが未登録です</div>'}
@@ -822,6 +861,11 @@ function renderForm(){
         <div class="split-preview" id="splitPreview"></div>
       </div>
       <div>
+        <label>自分のポイント利用額（円・任意）</label>
+        <input type="number" id="fPoints" placeholder="例）500" min="0" value="${editing && editing.pointsUsed ? editing.pointsUsed : ''}">
+        <div class="roster-hint">スタジオ予約ポイントなどで自分の負担分を支払った場合に入力してください。</div>
+      </div>
+      <div>
         <label>参加メンバー</label>
         <div class="member-add-row">
           <input type="text" id="fMemberInput" placeholder="名前を入力">
@@ -865,6 +909,7 @@ function renderForm(){
   document.getElementById('fStartH').addEventListener('change', autoFillEndTime);
   document.getElementById('fStartM').addEventListener('change', autoFillEndTime);
   document.getElementById('fPrice').addEventListener('input', updateSplitPreview);
+  document.getElementById('fPoints').addEventListener('input', updateSplitPreview);
   document.getElementById('fAddMember').addEventListener('click', addDraftMember);
   document.getElementById('fMemberInput').addEventListener('keydown', (e)=>{
     if(e.key === 'Enter'){ e.preventDefault(); addDraftMember(); }
@@ -947,11 +992,16 @@ function renderForm(){
   }
   function updateSplitPreview(){
     const price = Number(document.getElementById('fPrice').value) || 0;
+    const points = Number(document.getElementById('fPoints').value) || 0;
     const preview = document.getElementById('splitPreview');
-    if(price > 0 && draftMembers.length > 0){
-      preview.innerHTML = `1人あたり（概算） <b>${yen(Math.ceil(price/draftMembers.length))}</b>　（${draftMembers.length}人で割った場合）`;
-    } else {
+    const split = splitCost({ totalPrice: price, pointsUsed: points, members: draftMembers.map(name=>({name})) });
+    if(!split){
       preview.textContent = '';
+    } else if(split.selfIncluded){
+      preview.innerHTML = `自分の負担 <b>${yen(split.selfShare)}</b>` +
+        (split.n > 1 ? `　他${split.n - 1}人は1人 <b>${yen(split.othersShare)}</b>` : '');
+    } else {
+      preview.innerHTML = `1人あたり（概算） <b>${yen(split.per)}</b>　（${split.n}人で割った場合）`;
     }
   }
   async function saveNewBooking(){
@@ -962,9 +1012,10 @@ function renderForm(){
     const endH = document.getElementById('fEndH').value;
     const endM = document.getElementById('fEndM').value;
     const totalPrice = Number(document.getElementById('fPrice').value) || 0;
+    const pointsUsed = Number(document.getElementById('fPoints').value) || 0;
     if(!bookings[selectedDate]) bookings[selectedDate] = [];
     const newBooking = {
-      id: uid(), studio, startH, startM, endH, endM, totalPrice,
+      id: uid(), studio, startH, startM, endH, endM, totalPrice, pointsUsed,
       members: draftMembers.map(name=>({name, accepted: isSelf(name)}))
     };
     bookings[selectedDate].push(newBooking);
@@ -982,6 +1033,7 @@ function renderForm(){
     target.endH = document.getElementById('fEndH').value;
     target.endM = document.getElementById('fEndM').value;
     target.totalPrice = Number(document.getElementById('fPrice').value) || 0;
+    target.pointsUsed = Number(document.getElementById('fPoints').value) || 0;
     const oldAccepted = {};
     target.members.forEach(m=>{ oldAccepted[m.name] = m.accepted; });
     target.members = draftMembers.map(name=>({name, accepted: isSelf(name) || !!oldAccepted[name]}));
