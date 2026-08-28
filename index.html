@@ -25,6 +25,8 @@
   --muted: #C193B0;
   --brass: #E85D8A;
   --brass-dim: #F7B8CE;
+  --brass-hover: #F27CA3;
+  --brass-rgb: 232, 93, 138;
   --stamp: #FF6B6B;
   --stamp-dim: #FFB3B3;
   --slate: #8DA9EA;
@@ -76,7 +78,7 @@ body{
 .tab-btn.active .tab-badge{ background: #fff; color: var(--brass); }
 .tab-badge:empty{ display: none; }
 
-.cal-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 20px; box-shadow: 0 6px 18px rgba(232,93,138,0.10); }
+.cal-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 20px; box-shadow: 0 6px 18px rgba(var(--brass-rgb),0.10); }
 .cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; }
 .cal-month{ font-family: 'Kiwi Maru', serif; font-size: 18px; letter-spacing: 0.04em; color: var(--brass); }
 .cal-nav-btns{ display:flex; gap: 6px; }
@@ -115,14 +117,14 @@ body{
 .day-cell.empty{ cursor: default; }
 .day-cell:not(.empty):hover{ border-color: var(--brass-dim); background: var(--panel-alt); }
 .day-cell.today{ color: var(--brass); font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--brass-dim); }
-.day-cell.selected{ background: var(--brass); color: var(--ink); font-weight: 700; box-shadow: 0 3px 10px rgba(232,93,138,0.35); }
+.day-cell.selected{ background: var(--brass); color: var(--ink); font-weight: 700; box-shadow: 0 3px 10px rgba(var(--brass-rgb),0.35); }
 .dot-wrap{ position:absolute; bottom: 3px; left: 50%; transform: translateX(-50%); display:flex; gap: 2px; }
 .dot{ width: 4px; height: 4px; border-radius: 50%; background: var(--brass); }
 .day-cell.selected .dot{ background: var(--ink); }
 .count-badge{ font-size: 8px; color: var(--brass); position:absolute; top:2px; right:3px; }
 .day-cell.selected .count-badge{ color: var(--ink); }
 
-.detail{ margin-top: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; min-height: 120px; box-shadow: 0 6px 18px rgba(232,93,138,0.10); }
+.detail{ margin-top: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; min-height: 120px; box-shadow: 0 6px 18px rgba(var(--brass-rgb),0.10); }
 .detail-empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 14px; padding: 20px 0; color: var(--muted); font-size: 13px; text-align:center; }
 .backup-reminder{
   display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap: wrap;
@@ -133,7 +135,7 @@ body{
   flex-shrink: 0; background: var(--brass); color: #fff; border:none; padding: 7px 16px;
   border-radius: 20px; font-size: 11.5px; font-weight: 700; cursor:pointer; white-space:nowrap; font-family: inherit;
 }
-.backup-reminder button:hover{ background: #F27CA3; }
+.backup-reminder button:hover{ background: var(--brass-hover); }
 .detail-date-label{ font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 12px; display:flex; align-items:center; justify-content:space-between; }
 .booking-nav{ display:flex; align-items:center; gap: 8px; margin-bottom: 16px; }
 .back-link{ background:none; border:none; color: var(--brass); cursor:pointer; font-size: 11.5px; letter-spacing: 0.03em; }
@@ -198,7 +200,7 @@ body{
 .roster-select-row{ display:flex; gap: 8px; margin-top: 10px; }
 .roster-select-row select{ flex:1; min-width: 0; }
 .roster-select-row button{ background: transparent; border: 1px solid var(--brass-dim); color: var(--brass); padding: 9px 14px; border-radius: 12px; cursor: pointer; font-size: 12.5px; font-family: inherit; white-space: nowrap; }
-.roster-select-row button:hover{ background: rgba(232,93,138,0.1); }
+.roster-select-row button:hover{ background: rgba(var(--brass-rgb),0.1); }
 .roster-select-row button:disabled{ opacity:0.3; cursor:default; }
 .roster-hint{ font-size: 11.5px; color: var(--muted); margin-top: 10px; }
 
@@ -223,9 +225,9 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 .new-btn{
   background: var(--brass); color: var(--ink); border: none; padding: 10px 22px; border-radius: 20px; cursor: pointer;
   font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.03em;
-  box-shadow: 0 4px 12px rgba(232,93,138,0.35);
+  box-shadow: 0 4px 12px rgba(var(--brass-rgb),0.35);
 }
-.new-btn:hover{ background: #F27CA3; }
+.new-btn:hover{ background: var(--brass-hover); }
 
 .form-grid{ display:flex; flex-direction:column; gap: 14px; }
 .form-grid label{ font-size: 11px; color: var(--muted); letter-spacing: 0.06em; display:block; margin-bottom: 6px; }
@@ -244,7 +246,7 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
   background: var(--brass); color: #fff; border: none; padding: 9px 16px; border-radius: 12px;
   cursor: pointer; font-size: 12.5px; font-weight: 700; font-family: inherit; white-space: nowrap;
 }
-.add-btn:hover{ background: #F27CA3; }
+.add-btn:hover{ background: var(--brass-hover); }
 .add-btn:disabled{ opacity: 0.35; cursor: default; background: var(--muted); }
 .current-members-box{ margin-top: 16px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
 .current-members-title{ font-size: 11px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 8px; }
@@ -261,19 +263,19 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 .split-preview{ font-size: 12px; color: var(--muted); margin-top: 6px; }
 .split-preview b{ color: var(--brass); }
 .form-actions{ display:flex; gap: 10px; justify-content:flex-end; margin-top: 8px; }
-.btn-primary{ background: var(--brass); color: var(--ink); border:none; padding: 10px 20px; border-radius: 20px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; box-shadow: 0 4px 12px rgba(232,93,138,0.35); }
-.btn-primary:hover{ background: #F27CA3; }
+.btn-primary{ background: var(--brass); color: var(--ink); border:none; padding: 10px 20px; border-radius: 20px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; box-shadow: 0 4px 12px rgba(var(--brass-rgb),0.35); }
+.btn-primary:hover{ background: var(--brass-hover); }
 .btn-ghost{ background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 13px; font-family: inherit; }
 .btn-ghost:hover{ color: var(--ivory); border-color: var(--muted); }
 
 .status-note{ font-size: 11px; color: var(--muted); margin-top: 10px; text-align:center; }
 
-.roster-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: 0 6px 18px rgba(232,93,138,0.10); }
+.roster-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: 0 6px 18px rgba(var(--brass-rgb),0.10); }
 .roster-add-row{ display:flex; align-items:center; gap: 8px; margin-bottom: 18px; }
 .roster-add-row input{ flex:1; min-width: 0; background: var(--panel-alt); border: 1px solid var(--line); color: var(--ivory); padding: 10px 12px; border-radius: 12px; font-size: 16px; font-family: inherit; }
 .roster-add-row input:focus{ outline:none; border-color: var(--brass-dim); }
-.roster-add-row button{ flex-shrink: 0; white-space: nowrap; background: var(--brass); color: var(--ink); border:none; padding: 10px 20px; border-radius: 20px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; box-shadow: 0 4px 12px rgba(232,93,138,0.35); }
-.roster-add-row button:hover{ background: #F27CA3; }
+.roster-add-row button{ flex-shrink: 0; white-space: nowrap; background: var(--brass); color: var(--ink); border:none; padding: 10px 20px; border-radius: 20px; cursor:pointer; font-weight: 700; font-size: 13px; font-family: inherit; box-shadow: 0 4px 12px rgba(var(--brass-rgb),0.35); }
+.roster-add-row button:hover{ background: var(--brass-hover); }
 .roster-item{ display:flex; align-items:center; justify-content:space-between; padding: 12px 4px; border-bottom: 1px dashed var(--line); font-size: 14.5px; }
 .roster-item:last-child{ border-bottom:none; }
 .roster-item button{ background:none; border:none; color: var(--muted); cursor:pointer; font-size: 12px; }
@@ -288,6 +290,17 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 .group-members{ font-size: 12px; color: var(--muted); margin-top: 4px; }
 .group-empty{ color: var(--muted); font-size: 13px; text-align:center; padding: 16px 0; }
 .section-title{ font-family: 'Kiwi Maru', serif; font-size: 15px; color: var(--brass); margin-bottom: 14px; }
+.theme-swatches{ display:flex; flex-wrap: wrap; gap: 14px; }
+.theme-swatch{
+  width: 40px; height: 40px; border-radius: 50%; border: 3px solid transparent; padding: 0;
+  cursor: pointer; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.12); transition: transform .15s, border-color .15s;
+}
+.theme-swatch:hover{ transform: scale(1.08); }
+.theme-swatch.selected{ border-color: var(--ivory); }
+.theme-swatch.selected::after{
+  content: '✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:16px; font-weight:700; text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
 
 @media (max-width: 420px){
   .app-title{ font-size: 22px; }
@@ -367,6 +380,12 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
 
   <div id="settingsView" style="display:none;">
     <div class="roster-card">
+      <div class="section-title">テーマカラー</div>
+      <div class="roster-hint" style="margin-top:0; margin-bottom:14px;">雰囲気はそのままに、アプリのメインカラーだけ好きな色に変えられます。</div>
+      <div class="theme-swatches" id="themeSwatches"></div>
+    </div>
+
+    <div class="roster-card" style="margin-top:20px;">
       <div class="form-grid">
         <div>
           <label>自分の名前</label>
@@ -415,7 +434,74 @@ const GROUPS_KEY = 'member-groups';
 const STUDIOS_KEY = 'saved-studios';
 const LAST_BACKUP_KEY = 'last-backup-at';
 const BACKUP_REMINDER_DAYS = 14; // これ以上バックアップの間隔が空いたらリマインドする
+const THEME_COLOR_KEY = 'theme-color';
 const WEEKDAYS = ['日','月','火','水','木','金','土'];
+
+// テーマカラー：雰囲気（背景・文字色など）はそのままに、メインカラーだけ差し替えるための9色プリセット
+const THEME_COLORS = [
+  { name: 'さくら',       hex: '#E85D8A' },
+  { name: 'さんご',       hex: '#E2635A' },
+  { name: 'オレンジ',     hex: '#EF9B4E' },
+  { name: 'マスタード',   hex: '#C99A2E' },
+  { name: 'ミント',       hex: '#4FAF82' },
+  { name: 'ティール',     hex: '#3FA9B0' },
+  { name: 'スカイブルー', hex: '#4A93D9' },
+  { name: 'ラベンダー',   hex: '#7C6BDB' },
+  { name: 'ベリー',       hex: '#C2529E' },
+];
+const DEFAULT_THEME_COLOR = THEME_COLORS[0].hex;
+let themeColor = DEFAULT_THEME_COLOR;
+
+function hexToRgb(hex){
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+function rgbToHsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h=0, s=0; const l=(max+min)/2;
+  const d=max-min;
+  if(d !== 0){
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d + (g<b?6:0); break;
+      case g: h=(b-r)/d + 2; break;
+      default: h=(r-g)/d + 4;
+    }
+    h *= 60;
+  }
+  return [h, s*100, l*100];
+}
+function hslToHex(h,s,l){
+  h/=360; s/=100; l/=100;
+  let r,g,b;
+  if(s === 0){ r=g=b=l; }
+  else{
+    const hue2rgb=(p,q,t)=>{
+      if(t<0) t+=1; if(t>1) t-=1;
+      if(t<1/6) return p+(q-p)*6*t;
+      if(t<1/2) return q;
+      if(t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    const q = l<0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l-q;
+    r = hue2rgb(p,q,h+1/3); g = hue2rgb(p,q,h); b = hue2rgb(p,q,h-1/3);
+  }
+  const toHex = x => Math.round(x*255).toString(16).padStart(2,'0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+function applyThemeColor(hex){
+  const root = document.documentElement.style;
+  const [r,g,b] = hexToRgb(hex);
+  const [h,s,l] = rgbToHsl(r,g,b);
+  const dim = hslToHex(h, Math.max(s-10,0), Math.min(l+32,92));
+  const hover = hslToHex(h, s, Math.min(l+8,90));
+  root.setProperty('--brass', hex);
+  root.setProperty('--brass-dim', dim);
+  root.setProperty('--brass-hover', hover);
+  root.setProperty('--brass-rgb', `${r}, ${g}, ${b}`);
+  themeColor = hex;
+}
 
 let today = new Date();
 let viewYear = today.getFullYear();
@@ -510,6 +596,15 @@ async function loadAll(){
     const res3 = await storage.get(SETTINGS_KEY);
     if(res3 && res3.value){ settings = Object.assign({selfName:'自分', defaultDurationHours:3}, JSON.parse(res3.value)); }
   }catch(e){ /* keep defaults */ }
+  try{
+    const res7 = await storage.get(THEME_COLOR_KEY);
+    applyThemeColor(res7 && res7.value ? JSON.parse(res7.value) : DEFAULT_THEME_COLOR);
+  }catch(e){ applyThemeColor(DEFAULT_THEME_COLOR); }
+}
+async function saveThemeColor(hex){
+  applyThemeColor(hex);
+  try{ await storage.set(THEME_COLOR_KEY, JSON.stringify(hex)); }
+  catch(e){ setStatus('保存に失敗しました'); }
 }
 async function saveBookings(){
   try{ await storage.set(BOOKINGS_KEY, JSON.stringify(bookings)); }
@@ -1242,6 +1337,21 @@ function renderSettings(){
   document.getElementById('sDefaultDuration').innerHTML = durationOptions(settings.defaultDurationHours);
   renderStudioList();
   renderLastBackupLabel();
+  renderThemeSwatches();
+}
+function renderThemeSwatches(){
+  const el = document.getElementById('themeSwatches');
+  if(!el) return;
+  el.innerHTML = THEME_COLORS.map(c=>`
+    <button type="button" class="theme-swatch ${c.hex.toLowerCase()===themeColor.toLowerCase() ? 'selected' : ''}"
+      style="background:${c.hex};" data-theme-hex="${c.hex}" title="${escapeHtml(c.name)}" aria-label="${escapeHtml(c.name)}"></button>
+  `).join('');
+  el.querySelectorAll('[data-theme-hex]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      await saveThemeColor(btn.dataset.themeHex);
+      renderThemeSwatches();
+    });
+  });
 }
 function renderLastBackupLabel(){
   const el = document.getElementById('lastBackupLabel');
@@ -1299,7 +1409,7 @@ async function addStudio(){
 }
 
 /* ---------- backup / restore ---------- */
-const BACKUP_KEYS = [BOOKINGS_KEY, ROSTER_KEY, SETTINGS_KEY, GROUPS_KEY, STUDIOS_KEY];
+const BACKUP_KEYS = [BOOKINGS_KEY, ROSTER_KEY, SETTINGS_KEY, GROUPS_KEY, STUDIOS_KEY, THEME_COLOR_KEY];
 function pad2(n){ return String(n).padStart(2, '0'); }
 async function exportBackup(){
   const data = {};
