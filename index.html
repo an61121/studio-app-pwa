@@ -384,8 +384,7 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
   <div id="settingsView" style="display:none;">
     <div class="roster-card">
       <div class="section-title">テーマカラー</div>
-      <div class="roster-hint" style="margin-top:0; margin-bottom:14px;">選んだ色に合わせて、背景やカードの色合いまでまとめて変わります。</div>
-      <div class="theme-swatches" id="themeSwatches"></div>
+      <div class="theme-swatches" id="themeSwatches" style="margin-top:14px;"></div>
     </div>
 
     <div class="roster-card" style="margin-top:20px;">
@@ -448,11 +447,9 @@ const THEME_COLORS = [
   { name: '黄色',         hex: '#E8B23D' },
   { name: 'ライム',       hex: '#8FBF3F' },
   { name: 'ミント',       hex: '#4FAF82' },
-  { name: 'ティール',     hex: '#3FA9B0' },
   { name: '水色',         hex: '#7EC8E3' },
   { name: 'スカイブルー', hex: '#4A93D9' },
   { name: 'ラベンダー',   hex: '#7C6BDB' },
-  { name: 'ベリー',       hex: '#C2529E' },
   { name: '黒',           hex: '#3A3A3A' },
 ];
 const DEFAULT_THEME_COLOR = THEME_COLORS[0].hex;
