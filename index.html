@@ -659,12 +659,10 @@ function renderBackupReminder(){
   el.innerHTML = `
     <div class="backup-reminder">
       <span>🌙 ${msg}機種変更やデータ消去に備えて保存しておきましょう。</span>
-      <button id="backupReminderBtn" type="button">設定へ</button>
+      <button id="backupReminderNowBtn" type="button">今すぐバックアップ</button>
     </div>
   `;
-  document.getElementById('backupReminderBtn').addEventListener('click', ()=>{
-    currentView = 'settings'; renderTabs(); renderSettings();
-  });
+  document.getElementById('backupReminderNowBtn').addEventListener('click', exportBackup);
 }
 
 /* ---------- pending (未受理) list ---------- */
@@ -1303,7 +1301,7 @@ async function addStudio(){
 /* ---------- backup / restore ---------- */
 const BACKUP_KEYS = [BOOKINGS_KEY, ROSTER_KEY, SETTINGS_KEY, GROUPS_KEY, STUDIOS_KEY];
 function pad2(n){ return String(n).padStart(2, '0'); }
-document.getElementById('backupExportBtn').addEventListener('click', async ()=>{
+async function exportBackup(){
   const data = {};
   for(const key of BACKUP_KEYS){
     const res = await storage.get(key);
@@ -1326,7 +1324,8 @@ document.getElementById('backupExportBtn').addEventListener('click', async ()=>{
   updateBackupBadge();
   renderBackupReminder();
   setStatus('バックアップを保存しました');
-});
+}
+document.getElementById('backupExportBtn').addEventListener('click', exportBackup);
 document.getElementById('backupImportBtn').addEventListener('click', ()=>{
   document.getElementById('backupFileInput').click();
 });
