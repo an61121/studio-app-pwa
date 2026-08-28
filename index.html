@@ -445,15 +445,15 @@ const THEME_COLORS = [
   { name: 'さくら',       hex: '#E85D8A' },
   { name: 'さんご',       hex: '#E2635A' },
   { name: 'オレンジ',     hex: '#EF9B4E' },
+  { name: '黄色',         hex: '#E8B23D' },
   { name: 'ライム',       hex: '#8FBF3F' },
   { name: 'ミント',       hex: '#4FAF82' },
   { name: 'ティール',     hex: '#3FA9B0' },
+  { name: '水色',         hex: '#7EC8E3' },
   { name: 'スカイブルー', hex: '#4A93D9' },
   { name: 'ラベンダー',   hex: '#7C6BDB' },
   { name: 'ベリー',       hex: '#C2529E' },
   { name: '黒',           hex: '#3A3A3A' },
-  // 白は背景と同化しないよう薄いグレーで代用し、文字色は黒に切り替える
-  { name: '白',           hex: '#C7C7C7', ink: '#333333', text: '#6E6E6E' },
 ];
 const DEFAULT_THEME_COLOR = THEME_COLORS[0].hex;
 let themeColor = DEFAULT_THEME_COLOR;
@@ -498,7 +498,12 @@ function hslToHex(h,s,l){
 }
 function applyThemeColor(hex){
   const root = document.documentElement.style;
-  const entry = THEME_COLORS.find(c=>c.hex.toLowerCase()===String(hex).toLowerCase());
+  let entry = THEME_COLORS.find(c=>c.hex.toLowerCase()===String(hex).toLowerCase());
+  if(!entry){
+    // 以前選ばれていたが廃止された色（例：白）の場合は既定色にフォールバックする
+    hex = DEFAULT_THEME_COLOR;
+    entry = THEME_COLORS.find(c=>c.hex.toLowerCase()===hex.toLowerCase());
+  }
   const ink = (entry && entry.ink) || '#FFFFFF';
   // 白のように背景に近い色は、そのままだと見出し文字として読みにくいので別の濃さの文字色を使う
   const textHex = (entry && entry.text) || hex;
