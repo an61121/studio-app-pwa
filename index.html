@@ -381,7 +381,7 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
   <div id="settingsView" style="display:none;">
     <div class="roster-card">
       <div class="section-title">テーマカラー</div>
-      <div class="roster-hint" style="margin-top:0; margin-bottom:14px;">雰囲気はそのままに、アプリのメインカラーだけ好きな色に変えられます。</div>
+      <div class="roster-hint" style="margin-top:0; margin-bottom:14px;">選んだ色に合わせて、背景やカードの色合いまでまとめて変わります。</div>
       <div class="theme-swatches" id="themeSwatches"></div>
     </div>
 
@@ -496,11 +496,25 @@ function applyThemeColor(hex){
   const [h,s,l] = rgbToHsl(r,g,b);
   const dim = hslToHex(h, Math.max(s-10,0), Math.min(l+32,92));
   const hover = hslToHex(h, s, Math.min(l+8,90));
+  // 選んだ色の色相(H)をもとに、背景・パネル・境界線・文字色まで一式まとめて作る
+  // （受理スタンプの色や土曜色は意味を持つ固定色なので、ここでは変更しない）
+  const bg = hslToHex(h, 60, 97);
+  const panelAlt = hslToHex(h, 62, 93);
+  const line = hslToHex(h, 58, 85);
+  const muted = hslToHex(h, 27, 67);
+  const ivory = hslToHex(h, 16, 28);
   root.setProperty('--brass', hex);
   root.setProperty('--brass-dim', dim);
   root.setProperty('--brass-hover', hover);
   root.setProperty('--brass-rgb', `${r}, ${g}, ${b}`);
+  root.setProperty('--bg', bg);
+  root.setProperty('--panel-alt', panelAlt);
+  root.setProperty('--line', line);
+  root.setProperty('--muted', muted);
+  root.setProperty('--ivory', ivory);
   themeColor = hex;
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if(metaTheme) metaTheme.setAttribute('content', bg);
 }
 
 let today = new Date();
