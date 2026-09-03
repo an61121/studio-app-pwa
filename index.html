@@ -397,7 +397,11 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
         <div style="display:flex; gap:14px;">
           <div style="flex:1; min-width:0;">
             <label>基本開始時間</label>
-            <select id="sDefaultStartH"></select>
+            <div class="time-group">
+              <select id="sDefaultStartH"></select>
+              <span>:</span>
+              <select id="sDefaultStartM"></select>
+            </div>
             <div class="roster-hint">新しい予約を追加するとき、開始時間に自動で入ります。</div>
           </div>
           <div style="flex:1; min-width:0;">
@@ -556,7 +560,7 @@ let roster = [];
 let groups = [];     // [ {id, name, members: [name, ...]} ]
 let studios = [];    // [ name, ... ]
 let lastBackupAt = null; // ISO文字列 or null（一度もバックアップしていない）
-let settings = { selfName: '自分', defaultDurationHours: 3, weekStart: 'sun', defaultStartH: '19' };
+let settings = { selfName: '自分', defaultDurationHours: 3, weekStart: 'sun', defaultStartH: '19', defaultStartM: '00' };
 let mode = 'list';
 let draftMembers = [];
 let copiedBooking = null; // コピー機能: {studio, startH, startM, endH, endM, totalPrice, pointsUsed, members} または null
@@ -610,11 +614,6 @@ function durationOptions(sel){
   }
   return s;
 }
-function startHourOptions(sel){
-  let s = `<option value="">未設定</option>`;
-  for(let h=0; h<24; h++){ const v = String(h).padStart(2,'0'); s += `<option value="${v}" ${sel===v?'selected':''}>${v}時</option>`; }
-  return s;
-}
 
 // localStorage-backed shim, mirroring the {key, value} shape the app already expects.
 // Swap this object out for a real backend (Firebase, a REST API, etc.) later if you need
@@ -643,7 +642,7 @@ async function loadAll(){
   catch(e){ lastBackupAt = null; }
   try{
     const res3 = await storage.get(SETTINGS_KEY);
-    if(res3 && res3.value){ settings = Object.assign({selfName:'自分', defaultDurationHours:3, weekStart:'sun', defaultStartH:'19'}, JSON.parse(res3.value)); }
+    if(res3 && res3.value){ settings = Object.assign({selfName:'自分', defaultDurationHours:3, weekStart:'sun', defaultStartH:'19', defaultStartM:'00'}, JSON.parse(res3.value)); }
   }catch(e){ /* keep defaults */ }
   try{
     const res7 = await storage.get(THEME_COLOR_KEY);
@@ -1077,7 +1076,7 @@ function renderForm(){
           <div class="time-group">
             <select id="fStartH">${hourOptions(template ? template.startH : (settings.defaultStartH || ''))}</select>
             <span>:</span>
-            <select id="fStartM">${minuteOptions(template ? template.startM : '00')}</select>
+            <select id="fStartM">${minuteOptions(template ? template.startM : (settings.defaultStartM || '00'))}</select>
           </div>
           <span class="time-sep">〜</span>
           <div class="time-group">
@@ -1415,7 +1414,8 @@ document.getElementById('groupSaveBtn').addEventListener('click', async ()=>{
 /* ---------- settings page ---------- */
 function renderSettings(){
   document.getElementById('sSelfName').value = settings.selfName;
-  document.getElementById('sDefaultStartH').innerHTML = startHourOptions(settings.defaultStartH || '');
+  document.getElementById('sDefaultStartH').innerHTML = hourOptions(settings.defaultStartH || '');
+  document.getElementById('sDefaultStartM').innerHTML = minuteOptions(settings.defaultStartM || '');
   document.getElementById('sDefaultDuration').innerHTML = durationOptions(settings.defaultDurationHours);
   document.getElementById('sWeekStart').value = settings.weekStart || 'sun';
   renderStudioList();
@@ -1450,6 +1450,7 @@ document.getElementById('sSaveBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('sSelfName').value.trim();
   settings.selfName = name || '自分';
   settings.defaultStartH = document.getElementById('sDefaultStartH').value;
+  settings.defaultStartM = document.getElementById('sDefaultStartM').value;
   settings.defaultDurationHours = Number(document.getElementById('sDefaultDuration').value) || 3;
   settings.weekStart = document.getElementById('sWeekStart').value === 'mon' ? 'mon' : 'sun';
   await saveSettings();
