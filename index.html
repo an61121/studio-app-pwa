@@ -399,6 +399,13 @@ select:focus{ outline:none; border-color: var(--brass-dim); }
           <select id="sDefaultDuration"></select>
           <div class="roster-hint">開始時間を入力すると、終了時間が未選択の場合に自動で入力されます。</div>
         </div>
+        <div>
+          <label>週の始まり</label>
+          <select id="sWeekStart">
+            <option value="sun">日曜日</option>
+            <option value="mon">月曜日</option>
+          </select>
+        </div>
         <div class="form-actions">
           <button class="btn-primary" id="sSaveBtn" type="button">保存</button>
         </div>
@@ -542,9 +549,10 @@ let roster = [];
 let groups = [];     // [ {id, name, members: [name, ...]} ]
 let studios = [];    // [ name, ... ]
 let lastBackupAt = null; // ISO文字列 or null（一度もバックアップしていない）
-let settings = { selfName: '自分', defaultDurationHours: 3 };
+let settings = { selfName: '自分', defaultDurationHours: 3, weekStart: 'sun' };
 let mode = 'list';
 let draftMembers = [];
+let copiedBooking = null; // コピー機能: {studio, startH, startM, endH, endM, totalPrice, pointsUsed, members} または null
 let groupDraftMembers = [];
 let editingGroupId = null;
 let currentView = 'bookings';
@@ -623,7 +631,7 @@ async function loadAll(){
   catch(e){ lastBackupAt = null; }
   try{
     const res3 = await storage.get(SETTINGS_KEY);
-    if(res3 && res3.value){ settings = Object.assign({selfName:'自分', defaultDurationHours:3}, JSON.parse(res3.value)); }
+    if(res3 && res3.value){ settings = Object.assign({selfName:'自分', defaultDurationHours:3, weekStart:'sun'}, JSON.parse(res3.value)); }
   }catch(e){ /* keep defaults */ }
   try{
     const res7 = await storage.get(THEME_COLOR_KEY);
@@ -678,9 +686,13 @@ document.getElementById('tabMembers').addEventListener('click', ()=>{ currentVie
 document.getElementById('tabSettings').addEventListener('click', ()=>{ currentView='settings'; renderTabs(); renderSettings(); });
 
 /* ---------- calendar ---------- */
+function weekdayOrder(){
+  // 週の始まりの設定に応じて、曜日インデックス(0=日〜6=土)を表示順に並べた配列を返す
+  return settings.weekStart === 'mon' ? [1,2,3,4,5,6,0] : [0,1,2,3,4,5,6];
+}
 function renderWeekdays(){
-  document.getElementById('weekdayRow').innerHTML = WEEKDAYS.map((w,i)=>
-    `<div class="weekday ${i===0?'sun':i===6?'sat':''}">${w}</div>`
+  document.getElementById('weekdayRow').innerHTML = weekdayOrder().map(i=>
+    `<div class="weekday ${i===0?'sun':i===6?'sat':''}">${WEEKDAYS[i]}</div>`
   ).join('');
 }
 function computeMonthlyTotal(year, month){
@@ -712,7 +724,8 @@ function renderMonthSummary(){
 function renderCalendar(){
   document.getElementById('monthLabel').textContent = `${viewYear}年 ${viewMonth+1}月`;
   const grid = document.getElementById('dayGrid');
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const rawFirstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const firstDay = weekdayOrder().indexOf(rawFirstDay);
   const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
   let html = '';
   for(let i=0;i<firstDay;i++) html += `<div class="day-cell empty"></div>`;
@@ -958,6 +971,7 @@ function renderDetail(){
     <button class="add-another-btn" id="addAnotherFromDetailBtn" style="margin-top:16px;">＋ この日にもう1件追加</button>
     <div class="detail-actions">
       <button class="edit-link" id="editBtn">この予約を編集</button>
+      <button class="edit-link" id="copyBtn">この予定をコピー</button>
       <button class="delete-link" id="deleteBtn">この予約を削除</button>
     </div>
   `;
@@ -997,10 +1011,23 @@ function renderDetail(){
     mode = 'edit';
     renderDetail();
   });
+  document.getElementById('copyBtn').addEventListener('click', ()=>{
+    copiedBooking = {
+      studio: booking.studio,
+      startH: booking.startH, startM: booking.startM, endH: booking.endH, endM: booking.endM,
+      totalPrice: booking.totalPrice, pointsUsed: booking.pointsUsed || 0,
+      members: booking.members.map(m=>m.name)
+    };
+    setStatus(`「${booking.studio}」をコピーしました。別の日で「＋予約を追加」すると内容を引き継げます`);
+  });
 }
 
 function startNew(){
-  draftMembers = settings.selfName ? [settings.selfName] : [];
+  if(copiedBooking){
+    draftMembers = [...copiedBooking.members];
+  } else {
+    draftMembers = settings.selfName ? [settings.selfName] : [];
+  }
   mode = 'new';
   selectedBookingId = null;
   renderDetail();
@@ -1012,9 +1039,13 @@ function renderForm(){
   const isEdit = mode === 'edit';
   const list = bookings[selectedDate] || [];
   const editing = isEdit ? list.find(b=>b.id===selectedBookingId) : null;
+  const template = isEdit ? editing : copiedBooking; // 編集時は編集対象、新規時はコピー内容（あれば）で初期値を埋める
 
   el.innerHTML = `
     <div class="detail-date-label">${formatDateLabel(selectedDate)} の予約を${isEdit ? '編集' : '追加'}</div>
+    ${(!isEdit && copiedBooking) ? `
+    <div class="roster-hint" style="margin-top:0; margin-bottom:14px;">「${escapeHtml(copiedBooking.studio)}」の内容をコピー中です。<button type="button" id="clearCopyBtn" class="back-link" style="margin-left:4px;">コピーを解除</button></div>
+    ` : ''}
     <div class="form-grid">
       <div>
         <label>スタジオ名</label>
@@ -1026,32 +1057,32 @@ function renderForm(){
           </select>
         </div>
         ` : ''}
-        <input type="text" id="fStudio" placeholder="例）〇〇スタジオ A館" value="${editing ? escapeHtml(editing.studio) : ''}">
+        <input type="text" id="fStudio" placeholder="例）〇〇スタジオ A館" value="${template ? escapeHtml(template.studio) : ''}">
       </div>
       <div>
         <label>時間</label>
         <div class="time-select-row">
           <div class="time-group">
-            <select id="fStartH">${hourOptions(editing ? editing.startH : '')}</select>
+            <select id="fStartH">${hourOptions(template ? template.startH : '')}</select>
             <span>:</span>
-            <select id="fStartM">${minuteOptions(editing ? editing.startM : '')}</select>
+            <select id="fStartM">${minuteOptions(template ? template.startM : '')}</select>
           </div>
           <span class="time-sep">〜</span>
           <div class="time-group">
-            <select id="fEndH">${hourOptions(editing ? editing.endH : '')}</select>
+            <select id="fEndH">${hourOptions(template ? template.endH : '')}</select>
             <span>:</span>
-            <select id="fEndM">${minuteOptions(editing ? editing.endM : '')}</select>
+            <select id="fEndM">${minuteOptions(template ? template.endM : '')}</select>
           </div>
         </div>
       </div>
       <div>
         <label>スタジオ合計金額（円）</label>
-        <input type="number" id="fPrice" placeholder="例）12000" min="0" value="${editing && editing.totalPrice ? editing.totalPrice : ''}">
+        <input type="number" id="fPrice" placeholder="例）12000" min="0" value="${template && template.totalPrice ? template.totalPrice : ''}">
         <div class="split-preview" id="splitPreview"></div>
       </div>
       <div>
         <label>自分のポイント利用額（円・任意）</label>
-        <input type="number" id="fPoints" placeholder="例）500" min="0" value="${editing && editing.pointsUsed ? editing.pointsUsed : ''}">
+        <input type="number" id="fPoints" placeholder="例）500" min="0" value="${template && template.pointsUsed ? template.pointsUsed : ''}">
         <div class="roster-hint">スタジオ予約ポイントなどで自分の負担分を支払った場合に入力してください。</div>
       </div>
       <div>
@@ -1093,6 +1124,14 @@ function renderForm(){
     fStudioSelect.addEventListener('change', ()=>{
       if(fStudioSelect.value) document.getElementById('fStudio').value = fStudioSelect.value;
       fStudioSelect.value = '';
+    });
+  }
+  const clearCopyBtn = document.getElementById('clearCopyBtn');
+  if(clearCopyBtn){
+    clearCopyBtn.addEventListener('click', ()=>{
+      copiedBooking = null;
+      draftMembers = settings.selfName ? [settings.selfName] : [];
+      renderDetail();
     });
   }
   document.getElementById('fStartH').addEventListener('change', autoFillEndTime);
@@ -1364,6 +1403,7 @@ document.getElementById('groupSaveBtn').addEventListener('click', async ()=>{
 function renderSettings(){
   document.getElementById('sSelfName').value = settings.selfName;
   document.getElementById('sDefaultDuration').innerHTML = durationOptions(settings.defaultDurationHours);
+  document.getElementById('sWeekStart').value = settings.weekStart || 'sun';
   renderStudioList();
   renderLastBackupLabel();
   renderThemeSwatches();
@@ -1396,7 +1436,9 @@ document.getElementById('sSaveBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('sSelfName').value.trim();
   settings.selfName = name || '自分';
   settings.defaultDurationHours = Number(document.getElementById('sDefaultDuration').value) || 3;
+  settings.weekStart = document.getElementById('sWeekStart').value === 'mon' ? 'mon' : 'sun';
   await saveSettings();
+  renderWeekdays();
   renderCalendar();
   setStatus('設定を保存しました');
 });
