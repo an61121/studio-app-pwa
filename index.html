@@ -109,6 +109,12 @@ body{
   font-size: 12px; color: var(--muted);
 }
 .month-summary b{ font-family:'Kiwi Maru', serif; font-size: 17px; color: var(--brass-text); font-weight:700; margin-left: 6px; }
+.pending-summary{
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px dashed var(--line);
+  font-size: 12px; color: var(--muted);
+}
+.pending-summary b{ font-family:'Kiwi Maru', serif; font-size: 17px; color: var(--brass-text); font-weight:700; margin-left: 6px; }
 .day-cell{
   position: relative; aspect-ratio: 1; display:flex; align-items:center; justify-content:center;
   font-size: 13px; color: var(--ivory); border-radius: 10px; cursor: pointer;
@@ -833,7 +839,11 @@ function renderPending(){
     el.innerHTML = `<div class="detail-empty">未受理のメンバーはいません</div>`;
     return;
   }
-  el.innerHTML = items.map(({dateKey, booking, pending, amount})=>`
+  const totalAmount = items.reduce((sum, {pending, amount}) => sum + (amount ? amount * pending.length : 0), 0);
+  const totalCount = items.reduce((sum, {pending}) => sum + pending.length, 0);
+  el.innerHTML = `
+    <div class="pending-summary"><span>未受理分の合計（${totalCount}人）</span><b>${yen(totalAmount)}</b></div>
+  ` + items.map(({dateKey, booking, pending, amount})=>`
     <div class="pending-booking">
       <div class="pending-date">${formatDateLabel(dateKey)}</div>
       <div class="pending-studio">${escapeHtml(booking.studio)}${timeLabel(booking) ? '　' + timeLabel(booking) : ''}</div>
